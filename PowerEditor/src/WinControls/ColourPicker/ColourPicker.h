@@ -44,12 +44,12 @@ public :
         _currentColour = c;
     };
 
-	COLORREF getColour() const {return _currentColour;};
+	COLORREF getColour() /*const*/ {return _currentColour;};
 	bool isEnabled() {return _isEnabled;};
 	void setEnabled(bool enabled) {_isEnabled = enabled;};
 
-private :
 	COLORREF _currentColour;
+private :
     WNDPROC _buttonDefaultProc;
 	ColourPopup *_pColourPopup;
 	bool _isEnabled;

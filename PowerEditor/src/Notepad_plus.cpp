@@ -3160,7 +3160,7 @@ void Notepad_plus::showFunctionComp()
 	autoC->showFunctionComplete();
 }
 
-static generic_string extractSymbol(TCHAR prefix, const TCHAR *str2extract)
+static generic_string extractSymbol(TCHAR *prefix, const TCHAR *str2extract)
 {
 	bool found = false;
 	TCHAR extracted[128] = TEXT("");
@@ -3182,8 +3182,11 @@ static generic_string extractSymbol(TCHAR prefix, const TCHAR *str2extract)
 			if (!str2extract[i])
 				return TEXT("");
 
-			if (str2extract[i] == prefix)
+			if (str2extract[i] == prefix[0] && str2extract[i+1] == prefix[1])
+			{
 				found = true;
+				++i;
+			}
 		}
 	}
 	return  generic_string(extracted);
@@ -3201,7 +3204,7 @@ bool Notepad_plus::doBlockComment(comment_mode currCommentMode)
 		if (!userLangContainer)
 			return false;
 
-		symbol = extractSymbol('0', userLangContainer->_keywordLists[4]);
+		symbol = extractSymbol(TEXT("00"), userLangContainer->_keywordLists[SCE_USER_KWLIST_COMMENTS]);
 		commentLineSybol = symbol.c_str();
 	}
 	else
@@ -3309,9 +3312,9 @@ bool Notepad_plus::doStreamComment()
 		if (!userLangContainer)
 			return false;
 
-		symbolStart = extractSymbol('1', userLangContainer->_keywordLists[4]);
+		symbolStart = extractSymbol(TEXT("03"), userLangContainer->_keywordLists[SCE_USER_KWLIST_COMMENTS]);
 		commentStart = symbolStart.c_str();
-		symbolEnd = extractSymbol('2', userLangContainer->_keywordLists[4]);
+		symbolEnd = extractSymbol(TEXT("04"), userLangContainer->_keywordLists[SCE_USER_KWLIST_COMMENTS]);
 		commentEnd = symbolEnd.c_str();
 	}
 	else
