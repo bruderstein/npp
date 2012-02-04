@@ -12,6 +12,34 @@
 namespace Scintilla {
 #endif
 
+typedef std::vector<std::vector<std::string>> vvstring;
+
+struct nestedInfo {
+	unsigned int position;
+	int nestedLevel;
+	int index;
+	int state;
+	int opener;
+
+	// constructor, useless but obligatory
+	nestedInfo():position(0), nestedLevel(0), index(0), state(0), opener(0) {};
+
+	nestedInfo * Set (unsigned int position, int nestedLevel, int index, int state, int opener) {
+		this->position = position;
+		this->nestedLevel = nestedLevel;
+		this->index = index;
+		this->state = state;
+		this->opener = opener;
+		return this;
+	}
+};
+
+struct foldInfo {
+	unsigned int position;
+	int state;
+	bool isFoldStatement;
+};
+
 /**
  * A Position is a position within a document between two characters or at the beginning or end.
  * Sometimes used as a character index where it identifies the character after the position.
@@ -233,6 +261,30 @@ private:
 public:
 
 	LexInterface *pli;
+
+	// UserDefineLanguage specific
+	std::vector<nestedInfo> nestedVector;
+	std::vector<foldInfo> foldVector;
+
+	vvstring commentLineOpen, commentLineContinue, commentLineClose;
+	vvstring commentOpen, commentClose;
+	vvstring delim1Open, delim1Escape, delim1Close;
+	vvstring delim2Open, delim2Escape, delim2Close;
+	vvstring delim3Open, delim3Escape, delim3Close;
+	vvstring delim4Open, delim4Escape, delim4Close;
+	vvstring delim5Open, delim5Escape, delim5Close;
+	vvstring delim6Open, delim6Escape, delim6Close;
+	vvstring delim7Open, delim7Escape, delim7Close;
+	vvstring delim8Open, delim8Escape, delim8Close;
+	vvstring operators1/*, operators2*/;
+	vvstring foldersInCode1Open, foldersInCode1Middle, foldersInCode1Close;
+	//vvstring foldersInCode2Open, foldersInCode2Middle, foldersInCode2Close;
+	std::vector<std::string> suffixTokens;
+	std::vector<std::string> prefixTokens;
+	std::vector<std::string> negativePrefixTokens;
+	std::vector<std::string> extrasInPrefixedTokens;
+	std::vector<std::string> rangeTokens;
+	// end of UserDefineLanguage specific
 
 	int stylingBits;
 	int stylingBitsMask;
