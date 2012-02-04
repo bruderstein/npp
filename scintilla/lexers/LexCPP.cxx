@@ -236,7 +236,7 @@ struct OptionsCPP {
 		foldExplicitAnywhere = false;
 		foldPreprocessor = false;
 		foldCompact = false;
-		foldAtElse = false;
+		foldAtElse = true;
 	}
 };
 
