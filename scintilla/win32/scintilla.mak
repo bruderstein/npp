@@ -47,6 +47,8 @@ CXXFLAGS=$(CXXFLAGS) $(CXXNDEBUG)
 INCLUDEDIRS=-I../include -I../src -I../lexlib
 CXXFLAGS=$(CXXFLAGS) $(INCLUDEDIRS)
 
+
+
 ALL:	$(COMPONENT) $(LEXCOMPONENT) $(LEXLIB) $(DIR_O)\ScintillaWinS.obj
 
 clean:
@@ -206,6 +208,8 @@ LOBJS=\
 	$(DIR_O)\XPM.obj \
 	$(LEXOBJS)
 
+!INCLUDE ../boostregex/nppSpecifics.mak	
+	
 $(DIR_O)\ScintRes.res : ScintRes.rc
 	$(RC) -fo$@ $**
 
