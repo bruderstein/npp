@@ -75,7 +75,8 @@ private:
 	ansimatch_t m_ansimatch;
 	
 	char *substituted;
-	std::string lastRegexString;
+	std::string m_lastRegexString;
+	std::string m_lastRegexUtf8string;
 	int lastCompileFlags;
 };
 
@@ -132,7 +133,9 @@ long BoostRegexSearch::FindText(Document* doc, int minPos, int maxPos, const cha
 	try
 	{
 		
-		if (compileFlags != lastCompileFlags || lastRegexString != s) // Test to see if we're called with the same
+		if (compileFlags != lastCompileFlags  
+			|| (isUtf8 && m_lastRegexUtf8string != s)
+			|| (!isUtf8 && m_lastRegexString != s)) // Test to see if we're called with the same
 			                      // regex as last time, if we are, then we don't need to recompile it
 		{
 			if (isUtf8)
@@ -140,13 +143,13 @@ long BoostRegexSearch::FindText(Document* doc, int minPos, int maxPos, const cha
 				const wchar_t* wchars = utf8ToWchar(s);
 				m_wcharre = wcharregex_t(wchars, static_cast<regex_constants::syntax_option_type>(compileFlags));
 				delete [] wchars;
+				m_lastRegexUtf8string = s;
 			}
 			else
 			{ // Ansi
 				m_charre = charregex_t(s, static_cast<regex_constants::syntax_option_type>(compileFlags));
+				m_lastRegexString = s;
 			}
-			
-			lastRegexString = s;
 			lastCompileFlags = compileFlags;
 		}
 	}
