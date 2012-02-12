@@ -208,9 +208,13 @@ long BoostRegexSearch::FindText(Document* doc, int minPos, int maxPos, const cha
 			if (increment == -1)
 			{
 				// Check for the last match on this line.
-				int repetitions = 1000;	// Break out of infinite loop
-				while (success && ((pos + lenRet) <= endPos) && (repetitions--)) 
+				int repetitions = 100;	// Break out of infinite loop
+				int previousPos = pos;
+				while (success && ((pos + lenRet) <= endPos)) 
 				{
+					if (previousPos >= pos && 0 >= (--repetitions))
+						break;
+					previousPos = pos;
 					success = regex_search(UTF8DocumentIterator(doc, pos + 1, endPos), end, m_utf8match, m_wcharre, flags);
 					// success = regex_search(DocumentIterator(doc, pos + 1, endPos), end, match, re, static_cast<regex_constants::match_flag_type>(flags));
 					if (success) 
@@ -244,9 +248,13 @@ long BoostRegexSearch::FindText(Document* doc, int minPos, int maxPos, const cha
 			if (increment == -1)
 			{
 				// Check for the last match on this line.
-				int repetitions = 1000;	// Break out of infinite loop
-				while (success && ((pos + lenRet) <= endPos) && (repetitions--)) 
+				int repetitions = 100;	// Break out of infinite loop
+				int previousPos = pos;
+				while (success && ((pos + lenRet) <= endPos)) 
 				{
+					if (previousPos >= pos && 0 >= (--repetitions))
+						break;
+					previousPos = pos;
 					success = regex_search(AnsiDocumentIterator(doc, pos + 1, endPos), end, m_ansimatch, m_charre, flags);
 					// success = regex_search(DocumentIterator(doc, pos + 1, endPos), end, match, re, static_cast<regex_constants::match_flag_type>(flags));
 					if (success) 
