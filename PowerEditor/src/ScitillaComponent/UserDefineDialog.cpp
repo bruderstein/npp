@@ -114,6 +114,8 @@ BOOL CALLBACK FolderStyleDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARAM
                     stylerDlg.doDialog();
                     return TRUE;
                 }
+				default :
+					return SharedParametersDialog::run_dlgProc(Message, wParam, lParam);
             }
         }
         case WM_DESTROY:
@@ -314,6 +316,8 @@ BOOL CALLBACK KeyWordsStyleDialog::run_dlgProc(UINT Message, WPARAM wParam, LPAR
                     stylerDlg.doDialog();
                     return TRUE;
                 }
+				default :
+					return SharedParametersDialog::run_dlgProc(Message, wParam, lParam);
             }
         }
         default :
@@ -392,6 +396,8 @@ BOOL CALLBACK CommentStyleDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARA
                     stylerDlg.doDialog();
                     return TRUE;
                 }
+				default :
+					return SharedParametersDialog::run_dlgProc(Message, wParam, lParam);
             }
         }
         default :
@@ -678,6 +684,8 @@ BOOL CALLBACK SymbolsStyleDialog::run_dlgProc(UINT Message, WPARAM wParam, LPARA
                     stylerDlg.doDialog();
                     return TRUE;
                 }
+				default :
+					return SharedParametersDialog::run_dlgProc(Message, wParam, lParam);
             }
         }
         default :
