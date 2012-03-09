@@ -193,7 +193,7 @@ protected :
 class FolderStyleDialog : public SharedParametersDialog
 {
 public:
-    FolderStyleDialog(): SharedParametersDialog() {};
+	FolderStyleDialog(): SharedParametersDialog() {};
     void updateDlg();
 protected :
     BOOL CALLBACK run_dlgProc(UINT Message, WPARAM wParam, LPARAM lParam);
