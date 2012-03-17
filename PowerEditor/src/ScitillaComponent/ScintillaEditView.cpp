@@ -708,9 +708,7 @@ void ScintillaEditView::setUserLexer(const TCHAR *userLangName)
 					if (keyWords_char[j] != ' ')
 						temp[index++] = keyWords_char[j];
 					else if (keyWords_char[j+1] != '"')
-					{
 						temp[index++] = '\v';
-					}
 					else
 						continue;
 				}
@@ -719,10 +717,7 @@ void ScintillaEditView::setUserLexer(const TCHAR *userLangName)
 					if (keyWords_char[j] != ' ')
 						temp[index++] = keyWords_char[j];
 					else if (keyWords_char[j+1] != '\'')
-					{
 						temp[index++] = '\b';
-					}
-
 					else
 						continue;
 				}
@@ -742,6 +737,9 @@ void ScintillaEditView::setUserLexer(const TCHAR *userLangName)
 	for (int i = 0 ; i < userLangContainer->_styleArray.getNbStyler() ; i++)
 	{
 		Style & style = userLangContainer->_styleArray.getStyler(i);
+
+		if (style._styleID == -1)
+			continue;
 
 		if (i < 10)	itoa(i, (nestingBuffer+20), 10);
 		else		itoa(i, (nestingBuffer+19), 10);
