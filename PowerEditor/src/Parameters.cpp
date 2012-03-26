@@ -2176,6 +2176,14 @@ bool NppParameters::feedUserLang(TiXmlNode *node)
 
 			feedUserStyles(stylesRoot);
 
+			// styles that were not read from xml file should get default values 
+			for (int i=0; i<SCE_USER_STYLE_TOTAL_STYLES; ++i)
+			{
+				Style & style = _userLangArray[_nbUserLang - 1]->_styleArray.getStyler(i);
+				if (style._styleID == -1)
+					_userLangArray[_nbUserLang - 1]->_styleArray.addStyler(i, styleNameMapper[i]);
+			}
+
 		} catch (std::exception e) {
 			delete _userLangArray[--_nbUserLang];
             isEverythingOK = false;
@@ -2541,31 +2549,40 @@ void NppParameters::feedUserSettings(TiXmlNode *settingsRoot)
 	{
 		boolStr = (globalSettingNode->ToElement())->Attribute(TEXT("caseIgnored"));
 		if (boolStr)
-			_userLangArray[_nbUserLang - 1]->_isCaseIgnored = !lstrcmp(TEXT("yes"), boolStr);
-		boolStr = (globalSettingNode->ToElement())->Attribute(TEXT("escapeChar"));
-		_userLangArray[_nbUserLang - 1]->_escapeChar[0] = (boolStr) ? boolStr[0] : 0;
-	}
-	TiXmlNode *treatAsSymbolNode = settingsRoot->FirstChildElement(TEXT("TreatAsSymbol"));
-	if (treatAsSymbolNode)
-	{
-		boolStr = (treatAsSymbolNode->ToElement())->Attribute(TEXT("comment"));
-		if (boolStr)
-			_userLangArray[_nbUserLang - 1]->_isCommentSymbol = !lstrcmp(TEXT("yes"), boolStr);
+            _userLangArray[_nbUserLang - 1]->_isCaseIgnored = !lstrcmp(TEXT("yes"), boolStr);
 
-		boolStr = (treatAsSymbolNode->ToElement())->Attribute(TEXT("commentLine"));
+		boolStr = (globalSettingNode->ToElement())->Attribute(TEXT("allowFoldOfComments"));
 		if (boolStr)
-			_userLangArray[_nbUserLang - 1]->_isCommentLineSymbol = !lstrcmp(TEXT("yes"), boolStr);
+            _userLangArray[_nbUserLang - 1]->_allowFoldOfComments = !lstrcmp(TEXT("yes"), boolStr);
+
+		boolStr = (globalSettingNode->ToElement())->Attribute(TEXT("forceLineCommentsAtBOL"));
+		if (boolStr)
+            _userLangArray[_nbUserLang - 1]->_forceLineCommentsAtBOL = !lstrcmp(TEXT("yes"), boolStr);
 	}
+
 	TiXmlNode *prefixNode = settingsRoot->FirstChildElement(TEXT("Prefix"));
 	if (prefixNode)
 	{
-		TCHAR names[nbPrefixListAllowed][7] = {TEXT("words1"), TEXT("words2"), TEXT("words3"), TEXT("words4")};
-		for (int i = 0 ; i < nbPrefixListAllowed ; i++)
-		{
-			boolStr = (prefixNode->ToElement())->Attribute(names[i]);
-			if (boolStr)
-				_userLangArray[_nbUserLang - 1]->_isPrefix[i] = !lstrcmp(TEXT("yes"), boolStr);
-		}
+        const TCHAR *udlVersion = _userLangArray[_nbUserLang - 1]->_udlVersion.c_str();
+        if (!lstrcmp(udlVersion, TEXT("2.0")))
+        {
+            for (int i = 0 ; i < SCE_USER_TOTAL_KEYWORDS ; i++)
+            {
+                boolStr = (prefixNode->ToElement())->Attribute(keywordListMapper[i+SCE_USER_KWLIST_KEYWORDS1]);
+                if (boolStr)
+                    _userLangArray[_nbUserLang - 1]->_isPrefix[i] = !lstrcmp(TEXT("yes"), boolStr);
+            }
+        }
+        else    // support for old style (pre 2.0)
+        {
+            TCHAR names[SCE_USER_TOTAL_KEYWORDS][7] = {TEXT("words1"), TEXT("words2"), TEXT("words3"), TEXT("words4")};
+            for (int i = 0 ; i < 4 ; i++)
+            {
+                boolStr = (prefixNode->ToElement())->Attribute(names[i]);
+                if (boolStr)
+                    _userLangArray[_nbUserLang - 1]->_isPrefix[i] = !lstrcmp(TEXT("yes"), boolStr);
+            }
+        }
 	}
 }
 
@@ -2576,30 +2593,135 @@ void NppParameters::feedUserKeywordList(TiXmlNode *node)
 		childNode = childNode->NextSibling(TEXT("Keywords")))
 	{
 		const TCHAR *keywordsName = (childNode->ToElement())->Attribute(TEXT("name"));
-		int i = getIndexFromKeywordListName(keywordsName);
-		if (i != -1)
-		{
-			TiXmlNode *valueNode = childNode->FirstChild();
-			if (valueNode)
-			{
-				const TCHAR *kwl = (valueNode)?valueNode->Value():(lstrcmp(keywordsName, TEXT("Delimiters"))?TEXT(""):TEXT("000000"));
-				lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[i], kwl);
-			}
-		}
+		const TCHAR *udlVersion = _userLangArray[_nbUserLang - 1]->_udlVersion.c_str();
+		TCHAR *kwl = NULL;
+
+        TiXmlNode *valueNode = childNode->FirstChild();
+        if (valueNode)
+        {
+            if (!lstrcmp(udlVersion, TEXT("2.0")))
+            {
+                const int keywordsID = _tstoi((childNode->ToElement())->Attribute(TEXT("id")));
+                kwl = (valueNode)?valueNode->Value():TEXT("");
+                lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[keywordsID], kwl);
+            }
+            else    // support for old style (pre 2.0)
+            {
+                if (!lstrcmp(keywordsName, TEXT("Delimiters")))
+                {
+                    basic_string<TCHAR> temp = TEXT("");
+                    kwl = (valueNode)?valueNode->Value():TEXT("000000");
+                    
+                    temp += TEXT("00");     if (kwl[0] != '0') temp += kwl[0];     temp += TEXT(" 01");
+                    temp += TEXT(" 02");    if (kwl[3] != '0') temp += kwl[3]; 
+                    temp += TEXT(" 03");    if (kwl[1] != '0') temp += kwl[1];     temp += TEXT(" 04");
+                    temp += TEXT(" 05");    if (kwl[4] != '0') temp += kwl[4]; 
+                    temp += TEXT(" 06");    if (kwl[2] != '0') temp += kwl[2];     temp += TEXT(" 07");
+                    temp += TEXT(" 08");    if (kwl[5] != '0') temp += kwl[5];
+                    
+                    temp += TEXT(" 09 10 11 12 13 14 15 16 17 18 19 20 21 22 23");
+                    lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[SCE_USER_KWLIST_DELIMITERS], temp.c_str());
+                }
+                else if (!lstrcmp(keywordsName, TEXT("Operators")))
+                {
+                    kwl = (valueNode)?valueNode->Value():TEXT("");
+                    lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[SCE_USER_KWLIST_OPERATORS1], kwl);
+                  }
+                else if (!lstrcmp(keywordsName, TEXT("Folder+")))
+                {
+                    kwl = (valueNode)?valueNode->Value():TEXT("");
+					lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[SCE_USER_KWLIST_FOLDERS_IN_CODE1_OPEN], kwl);
+                }
+                else if (!lstrcmp(keywordsName, TEXT("Folder-")))
+                {
+                    kwl = (valueNode)?valueNode->Value():TEXT("");
+					lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[SCE_USER_KWLIST_FOLDERS_IN_CODE1_CLOSE], kwl);
+                }
+                else if (!lstrcmp(keywordsName, TEXT("Words1")))
+                {
+                    kwl = (valueNode)?valueNode->Value():TEXT("");
+                    lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[SCE_USER_KWLIST_KEYWORDS1], kwl);
+                }
+                else if (!lstrcmp(keywordsName, TEXT("Words2")))
+                {
+                    kwl = (valueNode)?valueNode->Value():TEXT("");
+                    lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[SCE_USER_KWLIST_KEYWORDS2], kwl);
+                }
+                else if (!lstrcmp(keywordsName, TEXT("Words3")))
+                {
+                    kwl = (valueNode)?valueNode->Value():TEXT("");
+                    lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[SCE_USER_KWLIST_KEYWORDS3], kwl);
+                }
+                else if (!lstrcmp(keywordsName, TEXT("Words4")))
+                {
+                    kwl = (valueNode)?valueNode->Value():TEXT("");
+                    lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[SCE_USER_KWLIST_KEYWORDS4], kwl);
+                }
+                else if (!lstrcmp(keywordsName, TEXT("Comment")))
+                {
+                    kwl = (valueNode)?valueNode->Value():TEXT("");
+                    //int len = _tcslen(kwl);
+                    basic_string<TCHAR> temp = TEXT(" ");
+                    
+                    temp += kwl;
+                    size_t pos = 0;
+                    
+                    pos = temp.find(TEXT(" 0"));
+                    while (pos != string::npos)
+                    {
+                        temp.replace(pos, 2, TEXT(" 00"));
+                        pos = temp.find(TEXT(" 0"), pos+1);
+                    }
+                    pos = temp.find(TEXT(" 1"));
+                    while (pos != string::npos)
+                    {
+                        temp.replace(pos, 2, TEXT(" 03"));
+                        pos = temp.find(TEXT(" 1"));
+                    }
+                    pos = temp.find(TEXT(" 2"));
+                    while (pos != string::npos)
+                    {
+                        temp.replace(pos, 2, TEXT(" 04"));
+                        pos = temp.find(TEXT(" 2"));
+                    }
+                    
+                    temp += TEXT(" 01 02");
+                    if (temp[0] == ' ')
+                        temp.erase(0, 1);
+                    
+                    lstrcpy(_userLangArray[_nbUserLang - 1]->_keywordLists[SCE_USER_KWLIST_COMMENTS], temp.c_str());
+
+                }
+            }
+        }
 	}
 }
 
 void NppParameters::feedUserStyles(TiXmlNode *node)
 {
+	bool oldVersion = false;
+	const TCHAR *udlVersion = _userLangArray[_nbUserLang - 1]->_udlVersion.c_str();
+	if (lstrcmp(udlVersion, TEXT("2.0")))
+		oldVersion = true;
+
 	for (TiXmlNode *childNode = node->FirstChildElement(TEXT("WordsStyle"));
 		childNode ;
 		childNode = childNode->NextSibling(TEXT("WordsStyle")))
 	{
 		int id;
 		const TCHAR *styleIDStr = (childNode->ToElement())->Attribute(TEXT("styleID"), &id);
+		if (oldVersion)
+		{
+			if (id >= SCE_USER_STYLE_TOTAL_STYLES)
+				continue;
+
+			id = styleIdMApper[id];
+			if (id == -1)
+				continue;
+		}
 		if (styleIDStr)
 		{
-			_userLangArray[_nbUserLang - 1]->_styleArray.addStyler(id, childNode);
+			_userLangArray[_nbUserLang - 1]->_styleArray.addStyler((id | L_USER << 16), childNode);
 		}
 	}
 }
@@ -2699,19 +2821,33 @@ void LexerStylerArray::eraseAll()
 
 void StyleArray::addStyler(int styleID, TiXmlNode *styleNode)
 {
-	_styleArray[_nbStyler]._styleID = styleID;
+	int index = _nbStyler;
+	bool isUser = styleID >> 16 == L_USER;
+	if (isUser)
+	{
+		styleID = (styleID & 0xFFFF);
+		index = styleID;
+		if (index >= SCE_USER_STYLE_TOTAL_STYLES)
+			return;
+	}
+
+	_styleArray[index]._styleID = styleID;
 	
 	if (styleNode)
 	{
 		TiXmlElement *element = styleNode->ToElement();
 		
+		// TODO: translate to English
 		// Pour _fgColor, _bgColor :
 		// RGB() | (result & 0xFF000000) c'est pour le cas de -1 (0xFFFFFFFF)
 		// retourné par hexStrVal(str)
 		const TCHAR *str = element->Attribute(TEXT("name"));
 		if (str)
 		{
-			_styleArray[_nbStyler]._styleDesc = str;
+			if (isUser)
+				_styleArray[index]._styleDesc = styleNameMapper[index];
+			else
+				_styleArray[index]._styleDesc = str;
 		}
 
 		str = element->Attribute(TEXT("fgColor"));
@@ -2747,19 +2883,25 @@ void StyleArray::addStyler(int styleID, TiXmlNode *styleNode)
 		str = element->Attribute(TEXT("fontSize"));
 		if (str)
 		{
-			_styleArray[_nbStyler]._fontSize = decStrVal(str);
+			_styleArray[index]._fontSize = decStrVal(str);
+		}
+		str = element->Attribute(TEXT("nesting"));
+
+		if (str)
+		{
+			_styleArray[index]._nesting = decStrVal(str);
 		}
 
 		str = element->Attribute(TEXT("keywordClass"));
 		if (str)
 		{
-			_styleArray[_nbStyler]._keywordClass = getKwClassFromName(str);
+			_styleArray[index]._keywordClass = getKwClassFromName(str);
 		}
 
 		TiXmlNode *v = styleNode->FirstChild();
 		if (v)
 		{
-			_styleArray[_nbStyler]._keywords = new generic_string(v->Value());
+			_styleArray[index]._keywords = new generic_string(v->Value());
 		}
 	}
 	_nbStyler++;
@@ -5153,31 +5295,26 @@ void NppParameters::insertUserLang2Tree(TiXmlNode *node, UserLangContainer *user
 
 	rootElement->SetAttribute(TEXT("name"), userLang->_name);
 	rootElement->SetAttribute(TEXT("ext"), userLang->_ext);
+	rootElement->SetAttribute(TEXT("udlVersion"), TEXT("2.0"));
 	TiXmlElement *settingsElement = (rootElement->InsertEndChild(TiXmlElement(TEXT("Settings"))))->ToElement();
 	{
 		TiXmlElement *globalElement = (settingsElement->InsertEndChild(TiXmlElement(TEXT("Global"))))->ToElement();
 		globalElement->SetAttribute(TEXT("caseIgnored"), userLang->_isCaseIgnored?TEXT("yes"):TEXT("no"));
-		if (userLang->_escapeChar[0])
-			globalElement->SetAttribute(TEXT("escapeChar"), userLang->_escapeChar);
-
-		TiXmlElement *treatAsSymbolElement = (settingsElement->InsertEndChild(TiXmlElement(TEXT("TreatAsSymbol"))))->ToElement();
-		treatAsSymbolElement->SetAttribute(TEXT("comment"), userLang->_isCommentSymbol?TEXT("yes"):TEXT("no"));
-		treatAsSymbolElement->SetAttribute(TEXT("commentLine"), userLang->_isCommentLineSymbol?TEXT("yes"):TEXT("no"));
+		globalElement->SetAttribute(TEXT("allowFoldOfComments"), userLang->_allowFoldOfComments?TEXT("yes"):TEXT("no"));
+		globalElement->SetAttribute(TEXT("forceLineCommentsAtBOL"), userLang->_forceLineCommentsAtBOL?TEXT("yes"):TEXT("no"));
 
 		TiXmlElement *prefixElement = (settingsElement->InsertEndChild(TiXmlElement(TEXT("Prefix"))))->ToElement();
-		TCHAR names[nbPrefixListAllowed][7] = {TEXT("words1"), TEXT("words2"), TEXT("words3"), TEXT("words4")};
-		for (int i = 0 ; i < nbPrefixListAllowed ; i++)
-			prefixElement->SetAttribute(names[i], userLang->_isPrefix[i]?TEXT("yes"):TEXT("no"));
+		for (int i = 0 ; i < SCE_USER_TOTAL_KEYWORDS ; i++)
+			prefixElement->SetAttribute(keywordListMapper[i+SCE_USER_KWLIST_KEYWORDS1], userLang->_isPrefix[i]?TEXT("yes"):TEXT("no"));
 	}
 
 	TiXmlElement *kwlElement = (rootElement->InsertEndChild(TiXmlElement(TEXT("KeywordLists"))))->ToElement();
 
-	const int nbKWL = 9;
-	TCHAR kwn[nbKWL][16] = {TEXT("Delimiters"), TEXT("Folder+"), TEXT("Folder-"), TEXT("Operators"), TEXT("Comment"), TEXT("Words1"), TEXT("Words2"), TEXT("Words3"), TEXT("Words4")};
-	for (int i = 0 ; i < nbKWL ; i++)
+	for (int i = 0 ; i < SCE_USER_KWLIST_TOTAL ; i++)
 	{
 		TiXmlElement *kwElement = (kwlElement->InsertEndChild(TiXmlElement(TEXT("Keywords"))))->ToElement();
-		kwElement->SetAttribute(TEXT("name"), kwn[i]);
+		kwElement->SetAttribute(TEXT("name"), keywordListMapper[i]);
+		kwElement->SetAttribute(TEXT("id"), i);
 		kwElement->InsertEndChild(TiXmlText(userLang->_keywordLists[i]));
 	}
 
@@ -5186,15 +5323,18 @@ void NppParameters::insertUserLang2Tree(TiXmlNode *node, UserLangContainer *user
 	for (int i = 0 ; i < userLang->_styleArray.getNbStyler() ; i++)
 	{
 		TiXmlElement *styleElement = (styleRootElement->InsertEndChild(TiXmlElement(TEXT("WordsStyle"))))->ToElement();
-		Style style2Wite = userLang->_styleArray.getStyler(i);
+		Style style2Write = userLang->_styleArray.getStyler(i);
+		
+		if (style2Write._styleID == -1)
+			continue;
+			
+		styleElement->SetAttribute(TEXT("name"), style2Write._styleDesc);
 
-		styleElement->SetAttribute(TEXT("name"), style2Wite._styleDesc);
+		styleElement->SetAttribute(TEXT("styleID"), style2Write._styleID);
 
-		styleElement->SetAttribute(TEXT("styleID"), style2Wite._styleID);
-
-		//if (HIBYTE(HIWORD(style2Wite._fgColor)) != 0xFF)
+		//if (HIBYTE(HIWORD(style2Write._fgColor)) != 0xFF)
 		{
-			int rgbVal = RGB2int(style2Wite._fgColor);
+			int rgbVal = RGB2int(style2Write._fgColor);
 			TCHAR fgStr[7];
 			wsprintf(fgStr, TEXT("%.6X"), rgbVal);
 			styleElement->SetAttribute(TEXT("fgColor"), fgStr);
@@ -5234,6 +5374,8 @@ void NppParameters::insertUserLang2Tree(TiXmlNode *node, UserLangContainer *user
 			else
 				styleElement->SetAttribute(TEXT("fontSize"), style2Wite._fontSize);
 		}
+		
+		styleElement->SetAttribute(TEXT("nesting"), style2Write._nesting);
 	}
 }
 
