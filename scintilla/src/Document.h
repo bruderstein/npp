@@ -8,6 +8,10 @@
 #ifndef DOCUMENT_H
 #define DOCUMENT_H
 
+// Needed for vvstring typedef
+#include <vector>
+#include <string>
+
 #ifdef SCI_NAMESPACE
 namespace Scintilla {
 #endif
