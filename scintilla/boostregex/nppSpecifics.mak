@@ -24,9 +24,9 @@ INCLUDEDIRS=$(INCLUDEDIRS) -I$(BOOSTPATH)
 
 CXXFLAGS=$(CXXFLAGS) -DSCI_OWNREGEX
 !IFDEF DEBUG
-LDFLAGS=$(LDFLAGS) -LIBPATH:$(BOOSTPATH)\bin.v2\libs\regex\build\msvc-10.0\debug\link-static\runtime-link-static\threading-multi
+LDFLAGS=$(LDFLAGS) -LIBPATH:$(BOOSTLIBPATH)\debug\link-static\runtime-link-static\threading-multi
 !ELSE
-LDFLAGS=$(LDFLAGS) -LIBPATH:$(BOOSTPATH)\bin.v2\libs\regex\build\msvc-10.0\release\link-static\runtime-link-static\threading-multi
+LDFLAGS=$(LDFLAGS) -LIBPATH:$(BOOSTLIBPATH)\release\link-static\runtime-link-static\threading-multi
 !ENDIF
 
 
