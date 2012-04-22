@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="Windows-1252"?>
 <VisualStudioProject
 	ProjectType="Visual C++"
-	Version="9,00"
+	Version="9.00"
 	Name="Notepad++"
 	ProjectGUID="{FCF60E65-1B78-4D1D-AB59-4FC00AC8C248}"
 	RootNamespace="Notepad++"
@@ -139,7 +139,7 @@
 				ExceptionHandling="2"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
-				UsePrecompiledHeader="1"
+				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="precompiledHeaders.h"
 				PrecompiledHeaderFile="$(IntDir)\$(TargetName).pch"
 				WarningLevel="4"
@@ -234,7 +234,7 @@
 				ExceptionHandling="2"
 				RuntimeLibrary="0"
 				EnableFunctionLevelLinking="true"
-				UsePrecompiledHeader="1"
+				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="precompiledHeaders.h"
 				WarningLevel="4"
 				WarnAsError="true"
@@ -254,7 +254,7 @@
 				Name="VCLinkerTool"
 				AdditionalDependencies="comctl32.lib shlwapi.lib shell32.lib Oleacc.lib"
 				ShowProgress="2"
-				OutputFile="$(OutDir)/notepad2++.exe"
+				OutputFile="$(OutDir)/notepad++.exe"
 				Version="1.0"
 				LinkIncremental="1"
 				TypeLibraryFile=""
@@ -654,6 +654,22 @@
 			<File
 				RelativePath="..\src\MISC\Common\precompiledHeaders.cpp"
 				>
+				<FileConfiguration
+					Name="Unicode Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
+				<FileConfiguration
+					Name="Unicode Release|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\src\WinControls\Preference\preferenceDlg.cpp"

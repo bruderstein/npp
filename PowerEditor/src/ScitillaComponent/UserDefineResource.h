@@ -29,6 +29,10 @@
 #ifndef USERDEFINE_RC_H
 #define USERDEFINE_RC_H
 
+#ifndef IDC_STATIC
+#define IDC_STATIC -1
+#endif
+
 #define    IDD_GLOBAL_USERDEFINE_DLG 20000
     #define    IDC_DOCK_BUTTON                              (IDD_GLOBAL_USERDEFINE_DLG + 1 )
     #define    IDC_RENAME_BUTTON                            (IDD_GLOBAL_USERDEFINE_DLG + 2 )
