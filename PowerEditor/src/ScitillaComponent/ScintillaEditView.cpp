@@ -37,7 +37,7 @@
 TCHAR * getSciLexerFullPathName(TCHAR * moduleFileName, size_t len){
 	::GetModuleFileName(NULL, moduleFileName, len);
 	::PathRemoveFileSpec(moduleFileName);
-	::PathAppend(moduleFileName, TEXT("SciLexer2.dll"));
+	::PathAppend(moduleFileName, TEXT("SciLexer.dll"));
 	return moduleFileName;
 };
 

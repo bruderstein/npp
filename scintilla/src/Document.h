@@ -12,6 +12,9 @@
 namespace Scintilla {
 #endif
 
+#include <vector>
+#include <string>
+
 typedef std::vector<std::vector<std::string>> vvstring;
 
 struct nestedInfo {
