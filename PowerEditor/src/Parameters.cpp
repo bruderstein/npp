@@ -2150,12 +2150,16 @@ bool NppParameters::feedUserLang(TiXmlNode *node)
 	{
 		const TCHAR *name = (childNode->ToElement())->Attribute(TEXT("name"));
 		const TCHAR *ext = (childNode->ToElement())->Attribute(TEXT("ext"));
+		const TCHAR *udlVersion = (childNode->ToElement())->Attribute(TEXT("udlVersion"));
         hasFoundElement = true;
 		try {
 			if (!name || !name[0] || !ext)
 				throw std::runtime_error("NppParameters::feedUserLang : UserLang name is missing");
 
-			_userLangArray[_nbUserLang] = new UserLangContainer(name, ext);
+			if (!udlVersion)
+				_userLangArray[_nbUserLang] = new UserLangContainer(name, ext, TEXT(""));
+			else
+				_userLangArray[_nbUserLang] = new UserLangContainer(name, ext, udlVersion);
 			_nbUserLang++;
 
 			TiXmlNode *settingsRoot = childNode->FirstChildElement(TEXT("Settings"));
@@ -5342,37 +5346,37 @@ void NppParameters::insertUserLang2Tree(TiXmlNode *node, UserLangContainer *user
 
 		//if (HIBYTE(HIWORD(style2Wite._bgColor)) != 0xFF)
 		{
-			int rgbVal = RGB2int(style2Wite._bgColor);
+			int rgbVal = RGB2int(style2Write._bgColor);
 			TCHAR bgStr[7];
 			wsprintf(bgStr, TEXT("%.6X"), rgbVal);
 			styleElement->SetAttribute(TEXT("bgColor"), bgStr);
 		}
 
-		if (style2Wite._colorStyle != COLORSTYLE_ALL)
+		if (style2Write._colorStyle != COLORSTYLE_ALL)
 		{
-			styleElement->SetAttribute(TEXT("colorStyle"), style2Wite._colorStyle);
+			styleElement->SetAttribute(TEXT("colorStyle"), style2Write._colorStyle);
 		}
 
-		if (style2Wite._fontName)
+		if (style2Write._fontName)
 		{
-			styleElement->SetAttribute(TEXT("fontName"), style2Wite._fontName);
+			styleElement->SetAttribute(TEXT("fontName"), style2Write._fontName);
 		}
 
-		if (style2Wite._fontStyle == -1)
+		if (style2Write._fontStyle == -1)
 		{
 			styleElement->SetAttribute(TEXT("fontStyle"), TEXT("0"));
 		}
 		else
 		{
-			styleElement->SetAttribute(TEXT("fontStyle"), style2Wite._fontStyle);
+			styleElement->SetAttribute(TEXT("fontStyle"), style2Write._fontStyle);
 		}
 
-		if (style2Wite._fontSize != -1)
+		if (style2Write._fontSize != -1)
 		{
-			if (!style2Wite._fontSize)
+			if (!style2Write._fontSize)
 				styleElement->SetAttribute(TEXT("fontSize"), TEXT(""));
 			else
-				styleElement->SetAttribute(TEXT("fontSize"), style2Wite._fontSize);
+				styleElement->SetAttribute(TEXT("fontSize"), style2Write._fontSize);
 		}
 		
 		styleElement->SetAttribute(TEXT("nesting"), style2Write._nesting);
