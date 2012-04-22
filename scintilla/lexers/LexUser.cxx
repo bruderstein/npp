@@ -569,6 +569,7 @@ static bool isInListBackward(WordList & list, StyleContext & sc, bool specialMod
     int indexb = 0;
     char wsChar = 0;
     int nlCountTemp = 0;
+	int docLength = sc.LengthCurrent();
 
     while (i >= 0)
     {
@@ -580,7 +581,7 @@ static bool isInListBackward(WordList & list, StyleContext & sc, bool specialMod
             indexa = 0;
             indexb = 0;
             wsChar = 0;
-
+			
             do
             {
                 a = ignoreCase?toupper(list.words[i][indexa++]):list.words[i][indexa++];
@@ -595,7 +596,7 @@ static bool isInListBackward(WordList & list, StyleContext & sc, bool specialMod
                             b = sc.GetRelative(offset + indexb++);
                             bNext = sc.GetRelative(offset + indexb);
                         }
-                        while(isWhiteSpace2(b, nlCountTemp, wsChar, bNext));
+                        while(indexb <= docLength && isWhiteSpace2(b, nlCountTemp, wsChar, bNext));
 
                         a = ignoreCase?toupper(list.words[i][indexa++]):list.words[i][indexa++];
                     }
