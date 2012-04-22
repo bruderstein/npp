@@ -139,7 +139,7 @@
 				ExceptionHandling="2"
 				BasicRuntimeChecks="0"
 				RuntimeLibrary="1"
-				UsePrecompiledHeader="1"
+				UsePrecompiledHeader="2"
 				PrecompiledHeaderThrough="precompiledHeaders.h"
 				PrecompiledHeaderFile="$(IntDir)\$(TargetName).pch"
 				WarningLevel="4"
@@ -650,6 +650,14 @@
 			<File
 				RelativePath="..\src\MISC\Common\precompiledHeaders.cpp"
 				>
+				<FileConfiguration
+					Name="Unicode Debug|Win32"
+					>
+					<Tool
+						Name="VCCLCompilerTool"
+						UsePrecompiledHeader="1"
+					/>
+				</FileConfiguration>
 			</File>
 			<File
 				RelativePath="..\src\WinControls\Preference\preferenceDlg.cpp"

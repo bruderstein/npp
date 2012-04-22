@@ -13,8 +13,8 @@
 DIR_O=.
 DIR_BIN=..\bin
 
-COMPONENT=$(DIR_BIN)\Scintilla2.dll
-LEXCOMPONENT=$(DIR_BIN)\SciLexer2.dll
+COMPONENT=$(DIR_BIN)\Scintilla.dll
+LEXCOMPONENT=$(DIR_BIN)\SciLexer.dll
 LEXLIB=Lexers.lib
 
 CC=cl
