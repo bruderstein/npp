@@ -781,41 +781,156 @@ void ScintillaEditView::setCppLexer(LangType langType)
 
 void ScintillaEditView::setTclLexer()
 {
-	const char *tclInstrs;
-    const char *tclTypes;
-
+	const char *cstr_tclKeywords;
+	const char *cstr_tkKeywords;
+	const char *cstr_itclKeywords;
+	const char *cstr_tkCommands;
+	const char *cstr_expand;
+	const char *cstr_user1;
+	const char *cstr_user2;
+	const char *cstr_user3;
+	const char *cstr_user4;
 
     execute(SCI_SETLEXER, SCLEX_TCL); 
 
 	const TCHAR *pKwArray[10] = {NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL, NULL};
 	makeStyle(L_TCL, pKwArray);
 
-	basic_string<char> keywordListInstruction("");
-	basic_string<char> keywordListType("");
+	basic_string<char> tclKeywords("");
+	basic_string<char> tkKeywords("");
+	basic_string<char> itclKeywords("");
+	basic_string<char> tkCommands("");
+	basic_string<char> expand("");
+	basic_string<char> user1("");
+	basic_string<char> user2("");
+	basic_string<char> user3("");
+	basic_string<char> user4("");
+///////////////////////////// List 0 
 	if (pKwArray[LANG_INDEX_INSTR])
 	{
 #ifdef UNICODE
 		basic_string<wchar_t> kwlW = pKwArray[LANG_INDEX_INSTR];
-		keywordListInstruction = wstring2string(kwlW, CP_ACP);
+		tclKeywords = wstring2string(kwlW, CP_ACP);
 #else
-		keywordListInstruction = pKwArray[LANG_INDEX_INSTR];
+		tclKeywords = pKwArray[LANG_INDEX_INSTR];
 #endif
 	}
-	tclInstrs = getCompleteKeywordList(keywordListInstruction, L_TCL, LANG_INDEX_INSTR);
+	cstr_tclKeywords = getCompleteKeywordList(tclKeywords, L_TCL, LANG_INDEX_INSTR);
 
+
+///////////////////////////// List 1 
+	if (pKwArray[LANG_INDEX_INSTR2])
+	{
+	#ifdef UNICODE
+			basic_string<wchar_t> kwlW = pKwArray[LANG_INDEX_INSTR];
+			tkKeywords = wstring2string(kwlW, CP_ACP);
+	#else
+			tkKeywords = pKwArray[LANG_INDEX_INSTR2];
+	#endif
+	}
+	cstr_tkKeywords = getCompleteKeywordList(tkKeywords, L_TCL, LANG_INDEX_INSTR2);
+
+///////////////////////////// List 2
 	if (pKwArray[LANG_INDEX_TYPE])
 	{
 #ifdef UNICODE
 		basic_string<wchar_t> kwlW = pKwArray[LANG_INDEX_TYPE];
-		keywordListType = wstring2string(kwlW, CP_ACP);
+		itclKeywords = wstring2string(kwlW, CP_ACP);
 #else
-		keywordListType = pKwArray[LANG_INDEX_TYPE];
+		itclKeywords = pKwArray[LANG_INDEX_TYPE];
 #endif
 	}
-	tclTypes = getCompleteKeywordList(keywordListType, L_TCL, LANG_INDEX_TYPE);
+	cstr_itclKeywords = getCompleteKeywordList(itclKeywords, L_TCL, LANG_INDEX_TYPE);
 
-	execute(SCI_SETKEYWORDS, 0, (LPARAM)tclInstrs);
-	execute(SCI_SETKEYWORDS, 1, (LPARAM)tclTypes);
+///////////////////////////// List 3
+	if (pKwArray[LANG_INDEX_TYPE2])
+	{
+#ifdef UNICODE
+		basic_string<wchar_t> kwlW = pKwArray[LANG_INDEX_TYPE2];
+		tkCommands = wstring2string(kwlW, CP_ACP);
+#else
+		tkCommands = pKwArray[LANG_INDEX_TYPE2];
+#endif
+	}
+	cstr_tkCommands = getCompleteKeywordList(tkCommands, L_TCL, LANG_INDEX_TYPE2);
+
+///////////////////////////// List 4
+
+	if (pKwArray[LANG_INDEX_TYPE3])
+	{
+#ifdef UNICODE
+		basic_string<wchar_t> kwlW = pKwArray[LANG_INDEX_TYPE3];
+		expand = wstring2string(kwlW, CP_ACP);
+#else
+		expand = pKwArray[LANG_INDEX_TYPE3];
+#endif
+	}
+	cstr_expand = getCompleteKeywordList(expand, L_TCL, LANG_INDEX_TYPE3);
+
+
+///////////////////////////// List 5
+
+	if (pKwArray[LANG_INDEX_TYPE4])
+	{
+#ifdef UNICODE
+		basic_string<wchar_t> kwlW = pKwArray[LANG_INDEX_TYPE4];
+		user1 = wstring2string(kwlW, CP_ACP);
+#else
+		user1 = pKwArray[LANG_INDEX_TYPE4];
+#endif
+	}
+	cstr_user1 = getCompleteKeywordList(user1, L_TCL, LANG_INDEX_TYPE4);
+
+///////////////////////////// List 6
+
+	if (pKwArray[LANG_INDEX_TYPE5])
+	{
+#ifdef UNICODE
+		basic_string<wchar_t> kwlW = pKwArray[LANG_INDEX_TYPE5];
+		user2 = wstring2string(kwlW, CP_ACP);
+#else
+		user2 = pKwArray[LANG_INDEX_TYPE5];
+#endif
+	}
+	cstr_user2 = getCompleteKeywordList(user2, L_TCL, LANG_INDEX_TYPE5);
+
+
+	///////////////////////////// List 7
+
+	if (pKwArray[7])
+	{
+#ifdef UNICODE
+		basic_string<wchar_t> kwlW = pKwArray[7];
+		user3 = wstring2string(kwlW, CP_ACP);
+#else
+		user3 = pKwArray[7];
+#endif
+	}
+	cstr_user3 = getCompleteKeywordList(user3, L_TCL, 7);
+
+	///////////////////////////// List 8
+
+	if (pKwArray[8])
+	{
+#ifdef UNICODE
+		basic_string<wchar_t> kwlW = pKwArray[8];
+		user4 = wstring2string(kwlW, CP_ACP);
+#else
+		user4 = pKwArray[8];
+#endif
+	}
+	cstr_user4 = getCompleteKeywordList(user4, L_TCL, 8);
+
+	execute(SCI_SETKEYWORDS, 0, reinterpret_cast<LPARAM>(cstr_tclKeywords));
+	execute(SCI_SETKEYWORDS, 1, reinterpret_cast<LPARAM>(cstr_tkKeywords));
+	execute(SCI_SETKEYWORDS, 2, reinterpret_cast<LPARAM>(cstr_itclKeywords));
+	execute(SCI_SETKEYWORDS, 3, reinterpret_cast<LPARAM>(cstr_tkCommands));
+	execute(SCI_SETKEYWORDS, 4, reinterpret_cast<LPARAM>(cstr_expand));
+	execute(SCI_SETKEYWORDS, 5, reinterpret_cast<LPARAM>(cstr_user1));
+	execute(SCI_SETKEYWORDS, 6, reinterpret_cast<LPARAM>(cstr_user2));
+	execute(SCI_SETKEYWORDS, 7, reinterpret_cast<LPARAM>(cstr_user3));
+	execute(SCI_SETKEYWORDS, 8, reinterpret_cast<LPARAM>(cstr_user4));
+
 }
 
 //used by Objective-C and Actionscript
