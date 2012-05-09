@@ -35,12 +35,16 @@ class ScintillaEditView;
 
 enum TagCateg {tagOpen, tagClose, inSingleTag, outOfTag, invalidTag, unknownPb};
 
+
+
 class XmlMatchedTagsHighlighter {
 public:
 	XmlMatchedTagsHighlighter(ScintillaEditView *pEditView):_pEditView(pEditView){};
 	void tagMatch(bool doHiliteAttr);
 	
 private:
+	ScintillaEditView *_pEditView;
+	
 	struct XmlMatchedTagsPos {
 		int tagOpenStart;
 		int tagNameEnd;
@@ -49,13 +53,23 @@ private:
 		int tagCloseStart;
 		int tagCloseEnd;
 	};
+
+	struct FindResult {
+		int start;
+		int end;
+		bool success;
+	};
 	
-	ScintillaEditView *_pEditView;
+	bool getXmlMatchedTagsPos(XmlMatchedTagsPos & tagsPos);
+
+	FindResult findText(TCHAR text, int start, int end, int flags = 0);
+
+	/*
 
 	int getFirstTokenPosFrom(int targetStart, int targetEnd, const char *token, bool isRegex, std::pair<int, int> & foundPos);
 	TagCateg getTagCategory(XmlMatchedTagsPos & tagsPos, int curPos);
 	bool getMatchedTagPos(int searchStart, int searchEnd, const char *tag2find, const char *oppositeTag2find, vector<int> oppositeTagFound, XmlMatchedTagsPos & tagsPos);
-	bool getXmlMatchedTagsPos(XmlMatchedTagsPos & tagsPos);
+	
 	vector< pair<int, int> > getAttributesPos(int start, int end);
 	bool isInList(int element, vector<int> elementList) {
 		for (size_t i = 0 ; i < elementList.size() ; i++)
@@ -63,6 +77,7 @@ private:
 				return true;
 		return false;
 	};
+	*/
 };
 
 #endif //XMLMATCHEDTAGSHIGHLIGHTER_H

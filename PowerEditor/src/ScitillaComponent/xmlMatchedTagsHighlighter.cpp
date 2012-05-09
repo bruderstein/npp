@@ -29,7 +29,7 @@
 #include "precompiledHeaders.h"
 #include "xmlMatchedTagsHighlighter.h"
 #include "ScintillaEditView.h"
-
+/*
 int XmlMatchedTagsHighlighter::getFirstTokenPosFrom(int targetStart, int targetEnd, const char *token, bool isRegex, pair<int, int> & foundPos)
 {
 	//int start = currentPos;
@@ -448,6 +448,83 @@ vector< pair<int, int> > XmlMatchedTagsHighlighter::getAttributesPos(int start, 
 	return attributes;
 }
 
+*/
+
+bool XmlMatchedTagsHighlighter::getXmlMatchedTagsPos(XmlMatchedTagsPos &xmlTags)
+{
+	bool tagFound = false;
+	int caret = _pEditView->execute(SCI_GETCURRENTPOS);
+	FindResult openFound = findText(_T("<"), caret, 0, 0);
+	
+	if (openFound.success)
+	{
+		// Found the "<" before the caret, now check there isn't a > between that position and the caret.
+		FindResult closeFound = findText(_T(">"), openFound.start, caret, 0, 0);
+
+		if (!closeFound.success)
+		{
+			// We're in a tag (either a start tag or an end tag)
+			int nextChar = _pEditView->execute(SCI_GETCHARAT, openFound.start + 1);
+
+
+			/////////////////////////////////////////////////////////////////////////
+			// CLOSE TAG   
+			/////////////////////////////////////////////////////////////////////////
+			if ('/' == nextChar)
+			{
+				xmlTags.tagCloseStart = openFound.start;
+				int docLength = _pEditView->execute(SCI_GETLENGTH);
+				FindResult endCloseTag = findText(_T(">"), caret, docLength, 0);
+				if (endCloseTag.success)
+				{
+					xmlTags.tagCloseEnd = endCloseTag.end;
+				}
+				// Now find the tagName
+				int position = caret + 1;
+
+				// UTF-8 or ASCII tag name
+				std::string tagName;
+				
+				// Checking for " is actually wrong here, but it means it works better with invalid XML
+				while(nextChar != ' ' && nextChar != '/' && nextChar != '>' && nextChar != '\"' && position < docLength)
+				{
+					tagName.push_back((char)nextChar);
+					++position;
+					nextChar = _pEditView->execute(SCI_GETCHARAT, position);	
+				}
+				
+				// Now we know where the end of the tag is, and we know what the tag is called
+				xmlTags.tagNameEnd = position;
+
+				/* Now we need to find the open tag.  The logic here is that we search for "<TAGNAME",
+				 * then check the next character - if it's one of '>', ' ', '\"' then we know we've found 
+				 * a relevant tag. 
+				 * We then need to check if either
+				 *    a) this tag is a self-closed tag - e.g. <TAGNAME attrib="value" />
+				 * or b) this tag has another closing tag after it and before our closing tag
+				 *       e.g.  <TAGNAME attrib="value">some text</TAGNAME></TAGNA|ME>
+				 *             (cursor represented by |)
+				 * If it's either of the above, then we continue searching, but only up to the
+				 * the point of the last find. (So in the (b) example above, we'd only search backwards 
+				 * from the first "<TAGNAME...", as we know there's a close tag for the opened tag.
+
+				 * NOTE::  NEED TO CHECK THE ROTTEN CASE: ***********************************************************
+				 * <TAGNAME attrib="value"><TAGNAME>something</TAGNAME></TAGNAME></TAGNA|ME>
+				 * Maybe count all closing tags between start point and start of our end tag.???
+				 */
+
+			}
+			else
+			{
+			/////////////////////////////////////////////////////////////////////////
+			// OPEN TAG   
+			/////////////////////////////////////////////////////////////////////////
+
+			}
+		}
+	}
+	return tagFound;
+}
 
 
 void XmlMatchedTagsHighlighter::tagMatch(bool doHiliteAttr) 
