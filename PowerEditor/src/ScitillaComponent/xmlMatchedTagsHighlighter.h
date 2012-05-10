@@ -62,8 +62,10 @@ private:
 	
 	bool getXmlMatchedTagsPos(XmlMatchedTagsPos & tagsPos);
 
-	FindResult findText(TCHAR text, int start, int end, int flags = 0);
-
+	FindResult findText(const char *text, int start, int end, int flags = 0);
+	FindResult findOpenTag(const std::string& tagName, int start, int end);
+	FindResult findCloseTag(const std::string& tagName, int start, int end);
+	vector< pair<int, int> > getAttributesPos(int /* start*/, int /*end*/) { vector < pair<int, int> > x; return x; }
 	/*
 
 	int getFirstTokenPosFrom(int targetStart, int targetEnd, const char *token, bool isRegex, std::pair<int, int> & foundPos);
