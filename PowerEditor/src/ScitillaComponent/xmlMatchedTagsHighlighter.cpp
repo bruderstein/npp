@@ -486,8 +486,8 @@ bool XmlMatchedTagsHighlighter::getXmlMatchedTagsPos(XmlMatchedTagsPos &xmlTags)
 				// UTF-8 or ASCII tag name
 				std::string tagName;
 				nextChar = _pEditView->execute(SCI_GETCHARAT, position);	
-				// Checking for " is actually wrong here, but it means it works better with invalid XML
-				while(nextChar != ' ' && nextChar != '/' && nextChar != '>' && nextChar != '\"' && position < docLength)
+				// Checking for " or ' is actually wrong here, but it means it works better with invalid XML
+				while(position < docLength && !isWhitespace(nextChar) && nextChar != '/' && nextChar != '>' && nextChar != '\"' && nextChar != '\'')
 				{
 					tagName.push_back((char)nextChar);
 					++position;
@@ -495,62 +495,83 @@ bool XmlMatchedTagsHighlighter::getXmlMatchedTagsPos(XmlMatchedTagsPos &xmlTags)
 				}
 				
 				// Now we know where the end of the tag is, and we know what the tag is called
-				
-				
-				/* Now we need to find the open tag.  The logic here is that we search for "<TAGNAME",
-				 * then check the next character - if it's one of '>', ' ', '\"' then we know we've found 
-				 * a relevant tag. 
-				 * We then need to check if either
-				 *    a) this tag is a self-closed tag - e.g. <TAGNAME attrib="value" />
-				 * or b) this tag has another closing tag after it and before our closing tag
-				 *       e.g.  <TAGNAME attrib="value">some text</TAGNAME></TAGNA|ME>
-				 *             (cursor represented by |)
-				 * If it's either of the above, then we continue searching, but only up to the
-				 * the point of the last find. (So in the (b) example above, we'd only search backwards 
-				 * from the first "<TAGNAME...", as we know there's a close tag for the opened tag.
-
-				 * NOTE::  NEED TO CHECK THE ROTTEN CASE: ***********************************************************
-				 * <TAGNAME attrib="value"><TAGNAME>something</TAGNAME></TAGNAME></TAGNA|ME>
-				 * Maybe count all closing tags between start point and start of our end tag.???
-				 */
-				FindResult nextOpenTag = findOpenTag(tagName, xmlTags.tagCloseStart, 0);
-				if (nextOpenTag.success) 
+				if (tagName.size() != 0)
 				{
-					// Open tag found
-					// Now we need to check how many close tags there are between the open tag we just found,
-					// and our close tag
-					// eg. (Cursor == | )
-					// <TAGNAME attrib="value"><TAGNAME>something</TAGNAME></TAGNAME></TAGNA|ME>
-					//                         ^^^^^^^^ we've found this guy
-					//                                           ^^^^^^^^^^ ^^^^^^^^ Now we need to cound these fellas
-					FindResult inbetweenCloseTag;
-					int currentStartPosition = nextOpenTag.end;
-					int closeTagsFound = 0;
-					do
-					{
-						inbetweenCloseTag = findCloseTag(tagName, currentStartPosition, xmlTags.tagCloseStart);
-						if (inbetweenCloseTag.success)
-						{
-							++closeTagsFound;
-							currentStartPosition = inbetweenCloseTag.end;
-						}
+					/* Now we need to find the open tag.  The logic here is that we search for "<TAGNAME",
+					 * then check the next character - if it's one of '>', ' ', '\"' then we know we've found 
+					 * a relevant tag. 
+					 * We then need to check if either
+					 *    a) this tag is a self-closed tag - e.g. <TAGNAME attrib="value" />
+					 * or b) this tag has another closing tag after it and before our closing tag
+					 *       e.g.  <TAGNAME attrib="value">some text</TAGNAME></TAGNA|ME>
+					 *             (cursor represented by |)
+					 * If it's either of the above, then we continue searching, but only up to the
+					 * the point of the last find. (So in the (b) example above, we'd only search backwards 
+					 * from the first "<TAGNAME...", as we know there's a close tag for the opened tag.
 
-					} while(inbetweenCloseTag.success);
+					 * NOTE::  NEED TO CHECK THE ROTTEN CASE: ***********************************************************
+					 * <TAGNAME attrib="value"><TAGNAME>something</TAGNAME></TAGNAME></TAGNA|ME>
+					 * Maybe count all closing tags between start point and start of our end tag.???
+					 */
+					int currentEndPoint = xmlTags.tagCloseStart;
+					int openTagsRemaining = 1;
+					FindResult nextOpenTag;
+					do 
+					{
+						nextOpenTag = findOpenTag(tagName, currentEndPoint, 0);
+						if (nextOpenTag.success) 
+						{
+							--openTagsRemaining;
+							// Open tag found
+							// Now we need to check how many close tags there are between the open tag we just found,
+							// and our close tag
+							// eg. (Cursor == | )
+							// <TAGNAME attrib="value"><TAGNAME>something</TAGNAME></TAGNAME></TAGNA|ME>
+							//                         ^^^^^^^^ we've found this guy
+							//                                           ^^^^^^^^^^ ^^^^^^^^ Now we need to cound these fellas
+							FindResult inbetweenCloseTag;
+							int currentStartPosition = nextOpenTag.end;
+							int closeTagsFound = 0;
+							bool forwardSearch = (currentStartPosition < currentEndPoint);
+
+							do
+							{
+								inbetweenCloseTag = findCloseTag(tagName, currentStartPosition, currentEndPoint);
+								
+								if (inbetweenCloseTag.success)
+								{
+									++closeTagsFound;
+									if (forwardSearch)
+									{
+										currentStartPosition = inbetweenCloseTag.end;
+									}
+									else
+									{
+										currentStartPosition = inbetweenCloseTag.start - 1;
+									}
+								}
+
+							} while(inbetweenCloseTag.success);
 					
-					// If we didn't find any close tags between the open and our close,
-					// then the open we found was the right one, and we can return it
-					if (0 == closeTagsFound)
-					{
-						xmlTags.tagOpenStart = nextOpenTag.start;
-						xmlTags.tagOpenEnd = nextOpenTag.end;
-						xmlTags.tagNameEnd = nextOpenTag.start + tagName.size() + 1;  /* + 1 to account for '<' */ 
-						tagFound = true;
-					}
-					else
-					{
-						// Need to found the same number of opening tags, without closing tags etc.
-						// Could probably loop round.
-					}
+							// If we didn't find any close tags between the open and our close,
+							// and there's no open tags remaining to find
+							// then the open we found was the right one, and we can return it
+							if (0 == closeTagsFound && 0 == openTagsRemaining)
+							{
+								xmlTags.tagOpenStart = nextOpenTag.start;
+								xmlTags.tagOpenEnd = nextOpenTag.end;
+								xmlTags.tagNameEnd = nextOpenTag.start + tagName.size() + 1;  /* + 1 to account for '<' */ 
+								tagFound = true;
+							}
+							else
+							{
+							
+								// Need to find the same number of opening tags, without closing tags etc.
+								openTagsRemaining += closeTagsFound;
+								currentEndPoint = nextOpenTag.start;
+							}
+						}
+					} while (!tagFound && openTagsRemaining > 0 && nextOpenTag.success);
 				}
 			}
 			else
@@ -558,6 +579,7 @@ bool XmlMatchedTagsHighlighter::getXmlMatchedTagsPos(XmlMatchedTagsPos &xmlTags)
 			/////////////////////////////////////////////////////////////////////////
 			// OPEN TAG   
 			/////////////////////////////////////////////////////////////////////////
+				
 
 			}
 		}
@@ -573,16 +595,23 @@ XmlMatchedTagsHighlighter::FindResult XmlMatchedTagsHighlighter::findOpenTag(con
 	FindResult openTagFound;
 	openTagFound.success = false;
 	FindResult result;
-	int nextChar; 
+	int nextChar = 0; 
+	int styleAt;
 	int searchStart = start;
 	int searchEnd = end;
 	bool forwardSearch = (start < end);
-
+	bool cdata = false;
 	do
 	{
 		
 		result = findText(search.c_str(), searchStart, searchEnd, 0);
-		nextChar = _pEditView->execute(SCI_GETCHARAT, result.end);
+		if (result.success)
+		{
+			nextChar = _pEditView->execute(SCI_GETCHARAT, result.end);
+			styleAt = _pEditView->execute(SCI_GETSTYLEAT, result.start);
+			cdata = (styleAt == SCE_H_CDATA);
+		}
+
 		if (forwardSearch)
 		{
 			searchStart = result.end + 1;
@@ -592,12 +621,13 @@ XmlMatchedTagsHighlighter::FindResult XmlMatchedTagsHighlighter::findOpenTag(con
 			searchStart = result.start - 1;
 		}
 		
-
-	} while (result.success && nextChar != ' ' && nextChar != '>' && nextChar != '\t');
+		// Loop while we've found a <TAGNAME, but it's either in a CDATA section,
+		// or it's got more none whitespace characters after it. e.g. <TAGNAME2
+	} while (result.success && (cdata || (!isWhitespace(nextChar) && nextChar != '>')));
 	
 	openTagFound.start = result.start;
 
-	if (result.success)
+	if (result.success && !cdata)
 	{
 		// We've got an open tag for this tag name (i.e. nextChar was space or '>')
 		// Now we need to find the end of the start tag.
@@ -612,9 +642,11 @@ XmlMatchedTagsHighlighter::FindResult XmlMatchedTagsHighlighter::findOpenTag(con
 		{
 			// We'll search for the next '>', and check it's not in an attribute using the style
 			FindResult closeAngle;
+			int docLength = _pEditView->execute(SCI_GETLENGTH);
 			do
 			{
-				closeAngle = findText(">", result.end, end);
+
+				closeAngle = findText(">", result.end, docLength);
 				if (closeAngle.success)
 				{
 					int style = _pEditView->execute(SCI_GETSTYLEAT, closeAngle.start);
@@ -649,42 +681,62 @@ XmlMatchedTagsHighlighter::FindResult XmlMatchedTagsHighlighter::findCloseTag(co
 	closeTagFound.success = false;
 	FindResult result;
 	int nextChar; 
+	int styleAt;
+	int searchStart = start;
+	int searchEnd = end;
+	bool forwardSearch = (start < end);
+	bool validCloseTag;
 	do
 	{
-		
-		result = findText(search.c_str(), start, end, 0);
-		nextChar = _pEditView->execute(SCI_GETCHARAT, result.end + 1);
-		// TODO: cope with reverse searches
-		start = result.end;
-
-	} while (result.success && nextChar != ' ' && nextChar != '>' && nextChar != '\t');
-	
-	closeTagFound.start = result.start;
-
-	if (result.success)
-	{
-		// We've got an close tag for this tag name (i.e. nextChar was space or '>')
-		// Now we need to find the end of the close tag.
-		
-		// Common case, the tag is an empty tag with no whitespace. e.g. <TAGNAME>
-		if (nextChar == '>')
+		validCloseTag = false;
+		result = findText(search.c_str(), searchStart, searchEnd, 0);
+		if (result.success)
 		{
-			closeTagFound.end = result.end + 1;
-			closeTagFound.success = true;
-		}
-		else
-		{
-			// We'll search for the next '>', and check it's not in an attribute using the style
-			FindResult closeAngle = findText(">", result.end + 1, end);
-			if (closeAngle.success)
+			nextChar = _pEditView->execute(SCI_GETCHARAT, result.end);
+			styleAt = _pEditView->execute(SCI_GETSTYLEAT, result.start);
+		
+			// Setup the parameters for the next search, if there is one.
+			if (forwardSearch)
 			{
-				closeTagFound.end = closeAngle.start;
-				closeTagFound.success = true;
-				
+				searchStart = result.end + 1;
 			}
+			else
+			{
+				searchStart = result.start - 1;
+			}
+		
+			if (styleAt != SCE_H_CDATA) // If what we found was in CDATA section, it's not a valid tag.
+			{
+				// Common case - '>' follows the tag name directly
+				if (nextChar == '>')
+				{
+					validCloseTag = true;
+					closeTagFound.start = result.start;
+					closeTagFound.end = result.end;
+					closeTagFound.success = true;
+				}
+				else if (isWhitespace(nextChar))  // Otherwise, if it's whitespace, then allow whitespace until a '>' - any other character is invalid.
+				{
+					int whitespacePoint = result.end;
+					do
+					{
+						++whitespacePoint;
+						nextChar = _pEditView->execute(SCI_GETCHARAT, whitespacePoint);
 				
+					} while(isWhitespace(nextChar));
+			
+					if (nextChar == '>')
+					{
+						validCloseTag = true;
+						closeTagFound.start = result.start;
+						closeTagFound.end = whitespacePoint;
+						closeTagFound.success = true;
+					}
+				}
+			}
 		}
-	}
+
+	} while (result.success && !validCloseTag);
 
 	return closeTagFound;
 
