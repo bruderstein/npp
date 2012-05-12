@@ -1578,8 +1578,13 @@ void ScintillaEditView::bufferUpdated(Buffer * buffer, int mask)
 
 void ScintillaEditView::collapse(int level2Collapse, bool mode)
 {
+	// The SCI_COLOURISE line has been removed, as it appears no longer to be needed. davegb3 May 2012.
+	// The SCI_TOGGLEFOLD call will internally from Scintilla call "EnsureStyledTo" on the document, to 
+	// ensure that the fold levels are set.  This is much more efficient than always restyling the whole
+	// document before every fold operation, especially on big documents.
+
 	// The following code is needed :
-	execute(SCI_COLOURISE, 0, -1);
+//	execute(SCI_COLOURISE, 0, -1);
 	// according to the Scitilla document :
 	//    This requests the current lexer or the container (if the lexer is set to SCLEX_CONTAINER)
 	//    to style the document between startPos and endPos. If endPos is -1, the document is styled from startPos to the end.
@@ -1613,8 +1618,15 @@ void ScintillaEditView::foldCurrentPos(bool mode)
 
 void ScintillaEditView::fold(int line, bool mode)
 {
+	// The SCI_COLOURISE line has been removed, as it appears no longer to be needed. davegb3 May 2012.
+	// The SCI_TOGGLEFOLD call will internally from Scintilla call "EnsureStyledTo" on the document, to 
+	// ensure that the fold levels are set.  This is much more efficient than always restyling the whole
+	// document before every fold operation, especially on big documents.
+
 	// The following code is needed :
-	execute(SCI_COLOURISE, 0, -1);
+	
+	// execute(SCI_COLOURISE, 0, -1);
+	
 	// according to the Scitilla document :
 	//    This requests the current lexer or the container (if the lexer is set to SCLEX_CONTAINER)
 	//    to style the document between startPos and endPos. If endPos is -1, the document is styled from startPos to the end.
@@ -1650,8 +1662,15 @@ void ScintillaEditView::fold(int line, bool mode)
 
 void ScintillaEditView::foldAll(bool mode)
 {
+	// The SCI_COLOURISE line has been removed, as it appears no longer to be needed. davegb3 May 2012.
+	// The SCI_TOGGLEFOLD call will internally from Scintilla call "EnsureStyledTo" on the document, to 
+	// ensure that the fold levels are set.  This is much more efficient than always restyling the whole
+	// document before every fold operation, especially on big documents.
+
+
 	// The following code is needed :
-	execute(SCI_COLOURISE, 0, -1);
+
+	//  execute(SCI_COLOURISE, 0, -1);
 	// according to the Scitilla document :
 	//    This requests the current lexer or the container (if the lexer is set to SCLEX_CONTAINER)
 	//    to style the document between startPos and endPos. If endPos is -1, the document is styled from startPos to the end.
