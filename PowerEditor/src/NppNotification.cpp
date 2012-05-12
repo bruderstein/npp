@@ -459,6 +459,10 @@ BOOL Notepad_plus::notify(SCNotification *notification)
 		const NppGUI & nppGUI = (NppParameters::getInstance())->getNppGUI();
 		if (nppGUI._enableSmartHilite)
 			_smartHighlighter.highlightView(notifyView);
+
+		int urlAction = (NppParameters::getInstance())->getNppGUI()._styleURL;
+		if ((urlAction == 1) || (urlAction == 2))
+			addHotSpot(_isDocModifing);
 		break;
 	}
 
