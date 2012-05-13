@@ -392,6 +392,14 @@ BOOL Notepad_plus::notify(SCNotification *notification)
 		|| (notification->nmhdr.hwndFrom == _subEditView.getHSelf()))
 		{
 			int lineClicked = notification->line;
+			
+			if (!_isFolding)
+			{
+				int urlAction = (NppParameters::getInstance())->getNppGUI()._styleURL;
+				if ((urlAction == 1) || (urlAction == 2))
+					addHotSpot(_isDocModifing);
+			}
+
 			if (_pDocMap)
 				_pDocMap->fold(lineClicked, _pEditView->isFolded(lineClicked));
 		}
