@@ -1331,10 +1331,24 @@ bool FindReplaceDlg::processReplace(const TCHAR *txt2find, const TCHAR *txt2repl
 
 	bool isRegExp = pOptions->_searchType == FindRegex;
 	int flags = Searching::buildSearchFlags(pOptions);
-	CharacterRange cr = (*_ppEditView)->getSelection();
 	
+	int startPosition;
+	int endPosition;
+
+	if (pOptions->_isInSelection)
+	{
+		CharacterRange cr = (*_ppEditView)->getSelection();
+		startPosition = cr.cpMin;
+		endPosition = cr.cpMax;
+	}
+	else
+	{
+		startPosition = 0;
+		endPosition = static_cast<int>((*_ppEditView)->execute(SCI_GETLENGTH));
+	}
+
 	(*_ppEditView)->execute(SCI_SETSEARCHFLAGS, flags);
-	int posFind = (*_ppEditView)->searchInTarget(pTextFind, stringSizeFind, cr.cpMin, cr.cpMax);
+	int posFind = (*_ppEditView)->searchInTarget(pTextFind, stringSizeFind, startPosition, endPosition);
 	if (posFind != -1)
 	{
 		if (isRegExp)
