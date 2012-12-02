@@ -163,7 +163,8 @@ long BoostRegexSearch::FindText(Document* doc, int minPos, int maxPos, const cha
 	// Work out the range of lines we're searching across, moving beyond an empty end-of-line
 	int lineRangeStart = doc->LineFromPosition(startPos);
 	int lineRangeEnd = doc->LineFromPosition(endPos);
-
+	
+	
 	regex_constants::match_flag_type flags(regex_constants::match_default);
 
 	
