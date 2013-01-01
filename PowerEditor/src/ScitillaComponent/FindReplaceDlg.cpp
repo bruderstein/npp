@@ -1234,64 +1234,78 @@ bool FindReplaceDlg::processFindNext(const TCHAR *txt2find, const FindOption *op
 
 	int flags = Searching::buildSearchFlags(pOptions);
 
+	int start, end;
+	int posFind;
+
 	(*_ppEditView)->execute(SCI_SETSEARCHFLAGS, flags);
 
-	int posFind = (*_ppEditView)->searchInTarget(pText, stringSizeFind, startPosition, endPosition);
-	if (posFind == -1) //no match found in target, check if a new target should be used
-	{
-		if (pOptions->_isWrapAround) 
+	do {
+		posFind = (*_ppEditView)->searchInTarget(pText, stringSizeFind, startPosition, endPosition);
+		if (posFind == -1) //no match found in target, check if a new target should be used
 		{
-			//when wrapping, use the rest of the document (entire document is usable)
-			if (pOptions->_whichDirection == DIR_DOWN)
+			if (pOptions->_isWrapAround) 
 			{
-				startPosition = 0;
-				endPosition = docLength;
-				if (oFindStatus)
-					*oFindStatus = FSEndReached;
-			}
-			else
-			{
-				startPosition = docLength;
-				endPosition = 0;
-				if (oFindStatus)
-					*oFindStatus = FSTopReached;
-			}
-
-			//new target, search again
-			posFind = (*_ppEditView)->searchInTarget(pText, stringSizeFind, startPosition, endPosition);
-		}
-		if (posFind == -1)
-		{
-			if (oFindStatus)
-				*oFindStatus = FSNotFound;
-			//failed, or failed twice with wrap
-			if (NotIncremental==pOptions->_incrementalType) //incremental search doesnt trigger messages
-			{	
-				generic_string msg = TEXT("Can't find the text:\r\n\"");
-				msg += txt2find;
-				msg += TEXT("\"");
-				::MessageBox(_hParent, msg.c_str(), TEXT("Find"), MB_OK);
-				// if the dialog is not shown, pass the focus to his parent(ie. Notepad++)
-				if (!::IsWindowVisible(_hSelf))
+				//when wrapping, use the rest of the document (entire document is usable)
+				if (pOptions->_whichDirection == DIR_DOWN)
 				{
-					::SetFocus((*_ppEditView)->getHSelf());
+					startPosition = 0;
+					endPosition = docLength;
+					if (oFindStatus)
+						*oFindStatus = FSEndReached;
 				}
 				else
 				{
-					::SetFocus(::GetDlgItem(_hSelf, IDFINDWHAT));
+					startPosition = docLength;
+					endPosition = 0;
+					if (oFindStatus)
+						*oFindStatus = FSTopReached;
 				}
+
+				//new target, search again
+				posFind = (*_ppEditView)->searchInTarget(pText, stringSizeFind, startPosition, endPosition);
 			}
-			delete [] pText;
+			if (posFind == -1)
+			{
+				if (oFindStatus)
+					*oFindStatus = FSNotFound;
+				//failed, or failed twice with wrap
+				if (NotIncremental==pOptions->_incrementalType) //incremental search doesnt trigger messages
+				{	
+					generic_string msg = TEXT("Can't find the text:\r\n\"");
+					msg += txt2find;
+					msg += TEXT("\"");
+					::MessageBox(_hParent, msg.c_str(), TEXT("Find"), MB_OK);
+					// if the dialog is not shown, pass the focus to his parent(ie. Notepad++)
+					if (!::IsWindowVisible(_hSelf))
+					{
+						::SetFocus((*_ppEditView)->getHSelf());
+					}
+					else
+					{
+						::SetFocus(::GetDlgItem(_hSelf, IDFINDWHAT));
+					}
+				}
+				delete [] pText;
+				return false;
+			}
+		}
+		else if (posFind == -2) // Invalid Regular expression
+		{
+			::MessageBox(_hParent, TEXT("Invalid regular expression"), TEXT("Find"), MB_ICONERROR | MB_OK);
 			return false;
 		}
-	}
-	else if (posFind == -2) // Invalid Regular expression
-	{
-		::MessageBox(_hParent, TEXT("Invalid regular expression"), TEXT("Find"), MB_ICONERROR | MB_OK);
-		return false;
-	}
-	int start =	posFind;
-	int end = int((*_ppEditView)->execute(SCI_GETTARGETEND));
+		start =	posFind;
+		end = int((*_ppEditView)->execute(SCI_GETTARGETEND));
+
+		// If a zero length match is found, then we skip it and jump to the next
+		if (pOptions->_whichDirection == DIR_UP) 
+			--endPosition;
+		else
+			++startPosition;
+
+	} while (start == end && 
+		((pOptions->_whichDirection == DIR_UP && endPosition < startPosition) 
+		|| (pOptions->_whichDirection == DIR_DOWN && startPosition < endPosition)));
 
 	// to make sure the found result is visible:
 	// prevent recording of absolute positioning commands issued in the process
@@ -1549,37 +1563,38 @@ int FindReplaceDlg::processRange(ProcessOperation op, const TCHAR *txt2find, con
 
 	//Initial range for searching
 	(*_ppEditView)->execute(SCI_SETSEARCHFLAGS, flags);
-	targetStart = (*_ppEditView)->searchInTarget(pTextFind, stringSizeFind, startRange, endRange);
 	
-	if ((targetStart >= 0) && (op == ProcessFindAll))	//add new filetitle if this file results in hits
-	{
-		_pFinder->addFileNameTitle(fileName);
-	}
+	
+	bool findAllFileNameAdded = false;
 
 	while (targetStart != -1 && targetStart != -2)
 	{
-		//int posFindBefore = posFind;
-		targetStart = int((*_ppEditView)->execute(SCI_GETTARGETSTART));
+		targetStart = (*_ppEditView)->searchInTarget(pTextFind, stringSizeFind, startRange, endRange);
+
+		// If we've not found anything, just break out of the loop
+		if (targetStart == -1 || targetStart == -2)
+			break;
+
 		targetEnd = int((*_ppEditView)->execute(SCI_GETTARGETEND));
+
 		if (targetEnd > endRange) {	//we found a result but outside our range, therefore do not process it
 			break;
 		}
+
 		int foundTextLen = targetEnd - targetStart;
 		int replaceDelta = 0;
 
-		// Search resulted in empty token, possible with RE
-		/*
-		if (!foundTextLen) {
-			delete [] pTextFind;
-			delete [] pTextReplace;
-			return -1;
-		}
-		*/
-		
+				
 		switch (op)
 		{
 			case ProcessFindAll: 
 			{
+				if (!findAllFileNameAdded)	//add new filetitle in hits if we haven't already
+				{
+					_pFinder->addFileNameTitle(fileName);
+					findAllFileNameAdded = true;
+				}
+
 				int lineNumber = (*_ppEditView)->execute(SCI_LINEFROMPOSITION, targetStart);
 				int lend = (*_ppEditView)->execute(SCI_GETLINEENDPOSITION, lineNumber);
 				int lstart = (*_ppEditView)->execute(SCI_POSITIONFROMLINE, lineNumber);
@@ -1689,14 +1704,27 @@ int FindReplaceDlg::processRange(ProcessOperation op, const TCHAR *txt2find, con
         if( targetStart + foundTextLen == endRange )
             break;
 
-		if (!foundTextLen && !replaceDelta)
-			startRange = targetStart + foundTextLen + 1; // find a empty string so just step forword
-		else
-			startRange = targetStart + foundTextLen + replaceDelta;		//search from result onwards
+		
+		
+		startRange = targetStart + foundTextLen + replaceDelta;		//search from result onwards
+		int targetLine = (*_ppEditView)->execute(SCI_LINEFROMPOSITION, targetStart);
+		int startLine = (*_ppEditView)->execute(SCI_LINEFROMPOSITION, startRange);
+		int startLineEnd = (*_ppEditView)->execute(SCI_GETLINEENDPOSITION, startLine);
+			
+		if (0 == foundTextLen)
+			startRange += 1; // found a empty string so just step forward
+
+		if (startRange >= startLineEnd && (targetLine == startLine)) 
+		{
+			startRange = (*_ppEditView)->execute(SCI_POSITIONFROMLINE, startLine + 1);
+		}
+		
+
 		endRange += replaceDelta;									//adjust end of range in case of replace
 
-		targetStart = (*_ppEditView)->searchInTarget(pTextFind, stringSizeFind, startRange, endRange);
-	}
+	}  
+
+
 	delete [] pTextFind;
 	delete [] pTextReplace;
 
