@@ -180,7 +180,15 @@ private:
 	static SearchResultMarking EmptySearchResultMarking;
 };
 
+
 enum FindStatus { FSFound, FSNotFound, FSTopReached, FSEndReached};
+
+
+enum StartPoint {
+	NextPosition,
+	StartOfSelection
+};
+
 
 class FindReplaceDlg : public StaticDialog
 {
@@ -208,7 +216,7 @@ public :
 	void initOptionsFromDlg();
 
 	void doDialog(DIALOG_TYPE whichType, bool isRTL = false, bool toShow = true);
-	bool processFindNext(const TCHAR *txt2find, const FindOption *options = NULL, FindStatus *oFindStatus = NULL);
+	bool processFindNext(const TCHAR *txt2find, const FindOption *options = NULL, FindStatus *oFindStatus = NULL, StartPoint startPoint = NextPosition);
 	bool processReplace(const TCHAR *txt2find, const TCHAR *txt2replace, const FindOption *options = NULL);
 
 	int markAll(const TCHAR *txt2find, int styleID);
@@ -317,6 +325,8 @@ private :
 	TabBar _tab;
 	winVer _winVer;
 
+	
+
 	void enableReplaceFunc(bool isEnable);
 	void enableFindInFilesControls(bool isEnable = true);
 	void enableFindInFilesFunc();
@@ -347,6 +357,8 @@ private :
 	static const int FR_OP_FIF = 4;
 	static const int FR_OP_GLOBAL = 8;
 	void saveInMacro(int cmd, int cmdType);
+
+
 };
 
 //FindIncrementDlg: incremental search dialog, docked in rebar
@@ -401,5 +413,8 @@ private :
 	virtual BOOL CALLBACK run_dlgProc(UINT message, WPARAM wParam, LPARAM lParam);
 	void markSelectedTextInc(bool enable, FindOption *opt = NULL);
 };
+
+
+
 
 #endif //FIND_REPLACE_DLG_H
