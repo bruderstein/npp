@@ -1182,7 +1182,7 @@ BOOL CALLBACK FindReplaceDlg::run_dlgProc(UINT message, WPARAM wParam, LPARAM lP
 // true  : the text2find is found
 // false : the text2find is not found
 
-bool FindReplaceDlg::processFindNext(const TCHAR *txt2find, const FindOption *options, FindStatus *oFindStatus, StartPoint startPoint /* = NextPosition */)
+bool FindReplaceDlg::processFindNext(const TCHAR *txt2find, const FindOption *options, FindStatus *oFindStatus, FindNextType findNextType /* = FINDNEXTTYPE_FINDNEXT */)
 {
 	if (oFindStatus)
 		*oFindStatus = FSFound;
@@ -1210,24 +1210,11 @@ bool FindReplaceDlg::processFindNext(const TCHAR *txt2find, const FindOption *op
 	int startPosition = cr.cpMax;
 	int endPosition = docLength;
 
-	if (startPoint == StartOfSelection)
-	{
-		startPosition = cr.cpMin;
-	}
 	
 	if (pOptions->_whichDirection == DIR_UP)
 	{
 		//When searching upwards, start is the lower part, end the upper, for backwards search
-
-		// If we're starting from the opposite end of the selection, then we take the end of the selection as the start
-		if (startPoint == StartOfSelection)
-		{
-			startPosition = cr.cpMax;
-		}
-		else
-		{
-			startPosition = cr.cpMax - 1;
-		}
+		startPosition = cr.cpMax - 1;
 		endPosition = 0;
 	}
 
@@ -1241,123 +1228,102 @@ bool FindReplaceDlg::processFindNext(const TCHAR *txt2find, const FindOption *op
 	{
 		// text to find is not modified, so use current position +1
 		startPosition = cr.cpMin;
-		
-		// If we're starting from the next point, start from the next byte
-		if (startPoint == NextPosition)
-			++startPosition;
-		
 		endPosition = docLength;	
+
 		if (pOptions->_whichDirection == DIR_UP)
 		{
 			//When searching upwards, start is the lower part, end the upper, for backwards search
 			startPosition = cr.cpMax;
-
-			// If we're starting from the next point, move the start position back one byte (searching backwards)
-			if (startPoint == NextPosition)
-				--startPosition;
-
 			endPosition = 0;
 		}
 	}
 
 	int flags = Searching::buildSearchFlags(pOptions);
+	switch (findNextType)
+	{
+		case FINDNEXTTYPE_FINDNEXT:
+			flags |= SCFIND_REGEXP_EMPTYMATCH_ALL | SCFIND_REGEXP_SKIPCRLFASONE;
+		break;
+
+		case FINDNEXTTYPE_REPLACENEXT:
+			flags |= SCFIND_REGEXP_EMPTYMATCH_NOTAFTERMATCH | SCFIND_REGEXP_SKIPCRLFASONE;
+			break;
+	}
 
 	int start, end;
 	int posFind;
-	int wrapLoop = 0;
 
 	(*_ppEditView)->execute(SCI_SETSEARCHFLAGS, flags);
 
-	do {
-		// Don't allow a search to start in the middle of a line end marker
-		if ((*_ppEditView)->execute(SCI_GETCHARAT, startPosition - 1) == '\r'
-			&& (*_ppEditView)->execute(SCI_GETCHARAT, startPosition) == '\n') 
-		{
-			++startPosition;
-		}
 
-		posFind = (*_ppEditView)->searchInTarget(pText, stringSizeFind, startPosition, endPosition);
-		if (posFind == -1) //no match found in target, check if a new target should be used
-		{
-			if (pOptions->_isWrapAround) 
-			{
-				//when wrapping, use the rest of the document (entire document is usable)
-				if (pOptions->_whichDirection == DIR_DOWN)
-				{
-					startPosition = 0;
-					endPosition = docLength;
-					if (oFindStatus)
-						*oFindStatus = FSEndReached;
-				}
-				else
-				{
-					startPosition = docLength;
-					endPosition = 0;
-					if (oFindStatus)
-						*oFindStatus = FSTopReached;
-				}
+	// Don't allow a search to start in the middle of a line end marker
+	if ((*_ppEditView)->execute(SCI_GETCHARAT, startPosition - 1) == '\r'
+		&& (*_ppEditView)->execute(SCI_GETCHARAT, startPosition) == '\n') 
+	{
+		++startPosition;
+	}
 
-				//new target, search again
-				posFind = (*_ppEditView)->searchInTarget(pText, stringSizeFind, startPosition, endPosition);
-			}
-			if (posFind == -1)
-			{
-				if (oFindStatus)
-					*oFindStatus = FSNotFound;
-				//failed, or failed twice with wrap
-				if (NotIncremental==pOptions->_incrementalType) //incremental search doesnt trigger messages
-				{	
-					generic_string msg = TEXT("Can't find the text:\r\n\"");
-					msg += txt2find;
-					msg += TEXT("\"");
-					::MessageBox(_hParent, msg.c_str(), TEXT("Find"), MB_OK);
-					// if the dialog is not shown, pass the focus to his parent(ie. Notepad++)
-					if (!::IsWindowVisible(_hSelf))
-					{
-						::SetFocus((*_ppEditView)->getHSelf());
-					}
-					else
-					{
-						::SetFocus(::GetDlgItem(_hSelf, IDFINDWHAT));
-					}
-				}
-				delete [] pText;
-				return false;
-			}
-		}
-		else if (posFind == -2) // Invalid Regular expression
+	posFind = (*_ppEditView)->searchInTarget(pText, stringSizeFind, startPosition, endPosition);
+	if (posFind == -1) //no match found in target, check if a new target should be used
+	{
+		if (pOptions->_isWrapAround) 
 		{
-			::MessageBox(_hParent, TEXT("Invalid regular expression"), TEXT("Find"), MB_ICONERROR | MB_OK);
-			return false;
-		}
-		start =	posFind;
-		end = int((*_ppEditView)->execute(SCI_GETTARGETEND));
-
-		// If a zero length match is found (checked in the while loop check below),
-		// then we skip it and jump to the next
-		if (pOptions->_whichDirection == DIR_UP) 
-			--endPosition;
-		else
-			++startPosition;
-
-		if (pOptions->_isWrapAround)
-		{
-			if (pOptions->_whichDirection == DIR_UP && endPosition < 0 && wrapLoop == 0)
-			{
-				endPosition = 0;
-				startPosition = docLength;
-				++wrapLoop;
-			}
-			else if (startPosition > endPosition && wrapLoop == 0)
+			//when wrapping, use the rest of the document (entire document is usable)
+			if (pOptions->_whichDirection == DIR_DOWN)
 			{
 				startPosition = 0;
 				endPosition = docLength;
-				++wrapLoop;
+				if (oFindStatus)
+					*oFindStatus = FSEndReached;
 			}
+			else
+			{
+				startPosition = docLength;
+				endPosition = 0;
+				if (oFindStatus)
+					*oFindStatus = FSTopReached;
+			}
+
+			//new target, search again
+			posFind = (*_ppEditView)->searchInTarget(pText, stringSizeFind, startPosition, endPosition);
 		}
-	} while (startPoint == NextPosition && start == cr.cpMin && end == cr.cpMax && 
-		((pOptions->_whichDirection == DIR_UP && endPosition >= 0) 
-		|| (pOptions->_whichDirection == DIR_DOWN && startPosition <= endPosition)));
+		if (posFind == -1)
+		{
+			if (oFindStatus)
+				*oFindStatus = FSNotFound;
+			//failed, or failed twice with wrap
+			if (NotIncremental==pOptions->_incrementalType) //incremental search doesnt trigger messages
+			{	
+				generic_string msg = TEXT("Can't find the text:\r\n\"");
+				msg += txt2find;
+				msg += TEXT("\"");
+				::MessageBox(_hParent, msg.c_str(), TEXT("Find"), MB_OK);
+				// if the dialog is not shown, pass the focus to his parent(ie. Notepad++)
+				if (!::IsWindowVisible(_hSelf))
+				{
+					::SetFocus((*_ppEditView)->getHSelf());
+				}
+				else
+				{
+					::SetFocus(::GetDlgItem(_hSelf, IDFINDWHAT));
+				}
+			}
+			delete [] pText;
+			return false;
+		}
+	}
+	else if (posFind == -2) // Invalid Regular expression
+	{
+		::MessageBox(_hParent, TEXT("Invalid regular expression"), TEXT("Find"), MB_ICONERROR | MB_OK);
+		return false;
+	}
+
+	start =	posFind;
+	end = int((*_ppEditView)->execute(SCI_GETTARGETEND));
+
+
+
+		
 
 	// to make sure the found result is visible:
 	// prevent recording of absolute positioning commands issued in the process
@@ -1396,7 +1362,7 @@ bool FindReplaceDlg::processReplace(const TCHAR *txt2find, const TCHAR *txt2repl
 
 	Sci_CharacterRange currentSelection = (*_ppEditView)->getSelection();
 	FindStatus status;
-	moreMatches = processFindNext(txt2find, pOptions, &status, StartOfSelection);
+	moreMatches = processFindNext(txt2find, pOptions, &status, FINDNEXTTYPE_REPLACENEXT);
 
 	if (moreMatches) 
 	{
@@ -1456,7 +1422,7 @@ bool FindReplaceDlg::processReplace(const TCHAR *txt2find, const TCHAR *txt2repl
 			}
 			*/
 			// Do the next find
-			moreMatches = processFindNext(txt2find, pOptions);
+			moreMatches = processFindNext(txt2find, pOptions, &status, FINDNEXTTYPE_REPLACENEXT);
 		}
 	}
 
@@ -1618,9 +1584,9 @@ int FindReplaceDlg::processRange(ProcessOperation op, const TCHAR *txt2find, con
 	}
 
 	bool isRegExp = pOptions->_searchType == FindRegex;
-	int flags = Searching::buildSearchFlags(pOptions);
+	int flags = Searching::buildSearchFlags(pOptions) | SCFIND_REGEXP_EMPTYMATCH_NOTAFTERMATCH | SCFIND_REGEXP_SKIPCRLFASONE; 
 
-
+	
 
 	if (op == ProcessMarkAll && colourStyleID == -1)	//if marking, check if purging is needed
 	{
@@ -1780,19 +1746,6 @@ int FindReplaceDlg::processRange(ProcessOperation op, const TCHAR *txt2find, con
 		
 		
 		startRange = targetStart + foundTextLen + replaceDelta;		//search from result onwards
-		int targetLine = (*_ppEditView)->execute(SCI_LINEFROMPOSITION, targetStart);
-		int startLine = (*_ppEditView)->execute(SCI_LINEFROMPOSITION, startRange);
-		int startLineEnd = (*_ppEditView)->execute(SCI_GETLINEENDPOSITION, startLine);
-			
-		if (0 == foundTextLen)
-			startRange += 1; // found a empty string so just step forward
-
-		if (startRange >= startLineEnd && (targetLine == startLine)) 
-		{
-			startRange = (*_ppEditView)->execute(SCI_POSITIONFROMLINE, startLine + 1);
-		}
-		
-
 		endRange += replaceDelta;									//adjust end of range in case of replace
 
 	}  
