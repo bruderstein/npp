@@ -1563,8 +1563,13 @@ int FindReplaceDlg::processRange(ProcessOperation op, const TCHAR *txt2find, con
 	}
 
 	bool isRegExp = pOptions->_searchType == FindRegex;
-	int flags = Searching::buildSearchFlags(pOptions) | SCFIND_REGEXP_EMPTYMATCH_NOTAFTERMATCH | SCFIND_REGEXP_SKIPCRLFASONE; 
+	int flags = Searching::buildSearchFlags(pOptions) | SCFIND_REGEXP_SKIPCRLFASONE; 
 
+	// Allow empty matches, but not immediately after previous match for replace all or find all.
+	// Other search types should ignore empty matches completely.
+	if (op == ProcessReplaceAll || op == ProcessFindAll)
+		flags |= SCFIND_REGEXP_EMPTYMATCH_NOTAFTERMATCH;
+	
 	
 
 	if (op == ProcessMarkAll && colourStyleID == -1)	//if marking, check if purging is needed
@@ -1666,8 +1671,15 @@ int FindReplaceDlg::processRange(ProcessOperation op, const TCHAR *txt2find, con
 
 			case ProcessMarkAll: 
 			{
-				(*_ppEditView)->execute(SCI_SETINDICATORCURRENT, SCE_UNIVERSAL_FOUND_STYLE);
-				(*_ppEditView)->execute(SCI_INDICATORFILLRANGE,  targetStart, foundTextLen);
+				// In theory, we can't have empty matches for a ProcessMarkAll, but because scintilla 
+				// gets upset if we call INDICATORFILLRANGE with a length of 0, we protect against it here.
+				// At least in version 2.27, after calling INDICATORFILLRANGE with length 0, further indicators 
+				// on the same line would simply not be shown.  This may have been fixed in later version of Scintilla.
+				if (foundTextLen > 0)  
+				{
+					(*_ppEditView)->execute(SCI_SETINDICATORCURRENT, SCE_UNIVERSAL_FOUND_STYLE);
+					(*_ppEditView)->execute(SCI_INDICATORFILLRANGE,  targetStart, foundTextLen);
+				}
 
 				if (_env->_doMarkLine)
 				{
@@ -1682,22 +1694,34 @@ int FindReplaceDlg::processRange(ProcessOperation op, const TCHAR *txt2find, con
 			
 			case ProcessMarkAllExt:
 			{
-				(*_ppEditView)->execute(SCI_SETINDICATORCURRENT,  colourStyleID);
-				(*_ppEditView)->execute(SCI_INDICATORFILLRANGE,  targetStart, foundTextLen);
+				// See comment by ProcessMarkAll
+				if (foundTextLen > 0)
+				{
+					(*_ppEditView)->execute(SCI_SETINDICATORCURRENT,  colourStyleID);
+					(*_ppEditView)->execute(SCI_INDICATORFILLRANGE,  targetStart, foundTextLen);
+				}
 				break;
 			}
 
 			case ProcessMarkAll_2:
 			{
-				(*_ppEditView)->execute(SCI_SETINDICATORCURRENT,  SCE_UNIVERSAL_FOUND_STYLE_SMART);
-				(*_ppEditView)->execute(SCI_INDICATORFILLRANGE,  targetStart, foundTextLen);
+				// See comment by ProcessMarkAll
+				if (foundTextLen > 0)
+				{
+					(*_ppEditView)->execute(SCI_SETINDICATORCURRENT,  SCE_UNIVERSAL_FOUND_STYLE_SMART);
+					(*_ppEditView)->execute(SCI_INDICATORFILLRANGE,  targetStart, foundTextLen);
+				}
 				break;
 			}
 
 			case ProcessMarkAll_IncSearch:
 			{
-				(*_ppEditView)->execute(SCI_SETINDICATORCURRENT,  SCE_UNIVERSAL_FOUND_STYLE_INC);
-				(*_ppEditView)->execute(SCI_INDICATORFILLRANGE,  targetStart, foundTextLen);
+				// See comment by ProcessMarkAll
+				if (foundTextLen > 0)
+				{
+					(*_ppEditView)->execute(SCI_SETINDICATORCURRENT,  SCE_UNIVERSAL_FOUND_STYLE_INC);
+					(*_ppEditView)->execute(SCI_INDICATORFILLRANGE,  targetStart, foundTextLen);
+				}
 				break;
 			}
 
