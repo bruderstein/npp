@@ -923,6 +923,20 @@ class TestBoostRegExSearch(unittest.TestCase):
 		self.setText(b"Baa")
 		self.assertEquals(firstMatch, searchFromStart()) # This search should find first match, as it should not be considered a continuation since text has been modified.
 
+
+	def testAStarAllowEmptyAtStartRegEx(self):
+		flags = self.ed.SCFIND_REGEXP | self.ed.SCFIND_REGEXP_EMPTYMATCH_ALL | self.ed.SCFIND_REGEXP_EMPTYMATCH_ALLOWATSTART
+		toFind = b"a*"
+		self.setText(b"BaaC") 
+		firstMatch = (0,0,0)
+		secondMatch = (1,1,3)
+		def searchFromStart(): return self.ed.FindBytes2(0, self.ed.Length, toFind, flags)
+		self.assertEquals(firstMatch, searchFromStart())
+		self.assertEquals(firstMatch, searchFromStart()) # This search would normally find second match, even though it is from same start position,
+		                                                 # as it should be considered a continuation of previous search, but we have set SCFIND_REGEXP_EMPTYMATCH_ALLOWATSTART
+		                                                 # which will force it to allow the first match to be found again.
+
+
 	# 'textWithBrackets' should contain the text with [] brackets around all strings that should be found by successive search of 'whatToFind', each search starting at end of previous match.
 	def doSearchTests(self, textWithBrackets, whatToFind, flags, direction):
 		expectedResults = self.setupTest(textWithBrackets, direction)

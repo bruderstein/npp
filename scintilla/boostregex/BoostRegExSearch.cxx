@@ -287,9 +287,12 @@ long BoostRegexSearch::FindText(Document* doc, int startPosition, int endPositio
 			| ((sciSearchFlags & SCFIND_REGEXP_DOTMATCHESNL) ? regex_constants::match_default : regex_constants::match_not_dot_newline);
 		
 		const int empty_match_style = sciSearchFlags & SCFIND_REGEXP_EMPTYMATCH_MASK;
+		const int allow_empty_at_start = sciSearchFlags & SCFIND_REGEXP_EMPTYMATCH_ALLOWATSTART;
+
 		search._is_allowed_empty = empty_match_style != SCFIND_REGEXP_EMPTYMATCH_NONE;
-		search._is_allowed_empty_at_start_position = search._is_allowed_empty && (
-			!_lastMatch.isContinuationSearch(doc, startPosition, search._direction)
+		search._is_allowed_empty_at_start_position = search._is_allowed_empty && 
+			(allow_empty_at_start
+			|| !_lastMatch.isContinuationSearch(doc, startPosition, search._direction)
 			|| empty_match_style == SCFIND_REGEXP_EMPTYMATCH_ALL && !_lastMatch.isEmpty()	// If last match is empty and this is a continuation, then we would have same empty match at start position, if it was allowed.
 			);
 		search._skip_windows_line_end_as_one_character = (sciSearchFlags & SCFIND_REGEXP_SKIPCRLFASONE) != 0;
