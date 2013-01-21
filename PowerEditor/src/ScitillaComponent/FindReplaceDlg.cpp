@@ -1248,6 +1248,10 @@ bool FindReplaceDlg::processFindNext(const TCHAR *txt2find, const FindOption *op
 		case FINDNEXTTYPE_REPLACENEXT:
 			flags |= SCFIND_REGEXP_EMPTYMATCH_NOTAFTERMATCH | SCFIND_REGEXP_SKIPCRLFASONE;
 			break;
+
+		case FINDNEXTTYPE_FINDNEXTFORREPLACE:
+			flags |= SCFIND_REGEXP_EMPTYMATCH_ALL | SCFIND_REGEXP_EMPTYMATCH_ALLOWATSTART | SCFIND_REGEXP_SKIPCRLFASONE;
+			break;
 	}
 
 	int start, end;
@@ -1355,14 +1359,15 @@ bool FindReplaceDlg::processReplace(const TCHAR *txt2find, const TCHAR *txt2repl
 	if (!txt2find || !txt2find[0] || !txt2replace)
 		return false;
 
-	const FindOption *pOptions = options?options:_env;
+	FindOption replaceOptions = options ? *options : *_env;
+	replaceOptions._incrementalType = NextIncremental;
 
 	if ((*_ppEditView)->getCurrentBuffer()->isReadOnly()) return false;
 	
 
 	Sci_CharacterRange currentSelection = (*_ppEditView)->getSelection();
 	FindStatus status;
-	moreMatches = processFindNext(txt2find, pOptions, &status, FINDNEXTTYPE_REPLACENEXT);
+	moreMatches = processFindNext(txt2find, &replaceOptions, &status, FINDNEXTTYPE_FINDNEXTFORREPLACE);
 
 	if (moreMatches) 
 	{
@@ -1379,9 +1384,7 @@ bool FindReplaceDlg::processReplace(const TCHAR *txt2find, const TCHAR *txt2repl
 			lstrcpy(pTextFind, txt2find);
 			lstrcpy(pTextReplace, txt2replace);
 		
-			bool isRegExp = pOptions->_searchType == FindRegex;
-		
-			// TODO: Check if we need to set the target start and end here
+			bool isRegExp = replaceOptions._searchType == FindRegex;
 
 			int start = currentSelection.cpMin;
 			int replacedLen = 0;
@@ -1396,33 +1399,9 @@ bool FindReplaceDlg::processReplace(const TCHAR *txt2find, const TCHAR *txt2repl
 
 
 			(*_ppEditView)->execute(SCI_SETSEL, start + replacedLen, start + replacedLen);
-			/*
-			int foundTextLen = currentSelection.cpMax - currentSelection.cpMin;
 			
-			
-			// Skip past the end of the line if we've replaced up to the end-of-line
-			int endOfFind = start + replacedLen;		//search from result onwards
-			int lineOfStartOfFind = (*_ppEditView)->execute(SCI_LINEFROMPOSITION, start);
-			int lineOfEndOfFind = (*_ppEditView)->execute(SCI_LINEFROMPOSITION, endOfFind);
-			int endOfLineOfFind = (*_ppEditView)->execute(SCI_GETLINEENDPOSITION, lineOfStartOfFind);
-			
-			int stepForward = 0;
-			if (0 == foundTextLen)
-				stepForward = 1; // found a empty string so just step forward
-
-			if (endOfFind >= endOfLineOfFind && (lineOfStartOfFind == lineOfEndOfFind)) 
-			{
-				int nextLineStart = (*_ppEditView)->execute(SCI_POSITIONFROMLINE, lineOfStartOfFind + 1);
-				stepForward = nextLineStart - endOfFind;
-			}
-
-			if (0 != stepForward)
-			{
-				(*_ppEditView)->execute(SCI_SETSEL, endOfFind + stepForward, endOfFind + stepForward);
-			}
-			*/
 			// Do the next find
-			moreMatches = processFindNext(txt2find, pOptions, &status, FINDNEXTTYPE_REPLACENEXT);
+			moreMatches = processFindNext(txt2find, &replaceOptions, &status, FINDNEXTTYPE_REPLACENEXT);
 		}
 	}
 
